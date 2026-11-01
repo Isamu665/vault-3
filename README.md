@@ -36,6 +36,7 @@ Abra o endereço terminado em `/vault-3/`. O build comum para hospedagem na raiz
 - Assistente com panorama, gráficos mensais, ranking por categoria, Markdown, exportação/cópia e links para ações.
 - Função Gemini autenticada, segredo no servidor, limite de 30 perguntas por usuário por dia UTC e consentimento para enviar totais.
 - Indicadores consultados diretamente do BCB por função de servidor; nenhuma taxa é gerada por IA.
+- Ditado opcional usando reconhecimento de voz do navegador, sem upload público de áudio.
 - Backup/importação JSON com IDs estáveis e preservação de vínculos.
 - Aplicativo web instalável (PWA), ícones locais e cache apenas dos arquivos da interface.
 

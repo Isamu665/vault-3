@@ -13,7 +13,7 @@ test('database enforces isolation, atomic patches, import and assistant quota', 
       grant usage on schema auth to authenticated, anon;
       grant execute on function auth.uid() to authenticated, anon;
       insert into auth.users values ('00000000-0000-0000-0000-000000000001'), ('00000000-0000-0000-0000-000000000002');`);
-    await db.exec(await readFile(new URL('../supabase/migrations/202611010001_vault.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../supabase/migrations/20261101163455_vault_independent_backend.sql', import.meta.url), 'utf8'));
     const alice = '00000000-0000-0000-0000-000000000001';
     const bob = '00000000-0000-0000-0000-000000000002';
     await db.exec(`set role authenticated; set request.jwt.claim.sub = '${alice}';`);

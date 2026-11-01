@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, Sparkles, Send, Loader2, ArrowUpRight, ShieldCheck, Plus, Copy, Download } from 'lucide-react';
+import { BarChart3, Sparkles, Send, Loader2, ArrowUpRight, ShieldCheck, Plus, Copy, Download, Mic, MicOff } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -33,9 +33,29 @@ function AssistantContent({ onClose }) {
   const [view, setView] = useState('overview'), [messages, setMessages] = useState([]);
   const [input, setInput] = useState(''), [sending, setSending] = useState(false), [error, setError] = useState('');
   const [share, setShare] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const recognition = useRef(null);
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const bottom = useRef(null), controller = useRef(null);
-  useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => () => {
+    controller.current?.abort();
+    if (recognition.current) {
+      recognition.current.onresult = null; recognition.current.onend = null; recognition.current.onerror = null;
+      recognition.current.abort();
+    }
+  }, []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending]);
+  const dictate = () => {
+    if (recording) { recognition.current?.stop(); return; }
+    if (!SpeechRecognition) return;
+    const engine = new SpeechRecognition();
+    engine.lang = 'pt-BR'; engine.interimResults = false; engine.continuous = false;
+    engine.onresult = event => setInput(previous => (previous + ' ' + event.results[0][0].transcript).trim().slice(0,4000));
+    engine.onerror = () => { setError('Não foi possível usar o ditado. Confira a permissão do microfone ou digite sua pergunta.'); setRecording(false); };
+    engine.onend = () => setRecording(false);
+    recognition.current = engine;
+    try { engine.start(); setRecording(true); setError(''); } catch { setError('Ditado indisponível neste navegador.'); }
+  };
   const send = async text => {
     if (!text.trim() || sending) return;
     setView('chat'); setError(''); setInput(''); setSending(true);
@@ -99,9 +119,10 @@ function AssistantContent({ onClose }) {
     <form className="border-t p-4 bg-muted/20" onSubmit={e => { e.preventDefault(); send(input); }}>
       <label className="flex items-start gap-2 text-xs text-muted-foreground mb-3"><input type="checkbox" checked={share} disabled={loading || !!dataError || sending} onChange={e => setShare(e.target.checked)} />
         <span>Enviar à IA Google/Gemini os totais do mês, de contas pendentes e dos últimos 6 meses. Não inclui descrições nem identificação dos lançamentos.</span></label>
-      <div className="flex gap-2"><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} disabled={sending} placeholder="O que você quer entender melhor?" className="flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
-        <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
+      <div className="flex gap-2"><Button type="button" variant="ghost" size="icon" aria-label={recording ? 'Encerrar ditado' : 'Ditar com o serviço de voz do navegador'} aria-pressed={recording} title={SpeechRecognition ? 'O áudio pode ser processado pelo provedor do navegador' : 'Ditado não disponível neste navegador'} disabled={sending || !SpeechRecognition} onClick={dictate}>{recording ? <MicOff className="w-4 h-4 text-rose-500" /> : <Mic className="w-4 h-4" />}</Button><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} disabled={sending || recording} placeholder={recording ? 'Ouvindo…' : 'O que você quer entender melhor?'} className="flex-1 min-w-0 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
+        <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || recording || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
       <p className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2"><ShieldCheck className="w-3 h-3" />A IA recebe sua pergunta ao enviar. Não altera seus cadastros nem movimenta dinheiro.</p>
+      {SpeechRecognition && <p className="text-[10px] text-muted-foreground mt-1">Ditado opcional: o áudio pode ser processado pelo provedor do navegador. Não há upload de gravação pública.</p>}
     </form>
   </>;
 }
