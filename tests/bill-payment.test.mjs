@@ -21,6 +21,18 @@ test('bill payment uses confirmed details, is atomic, idempotent and owner isola
  const expenses=(await db.query("select data from public.vault_records where entity='Expense'")).rows;
  assert.equal(expenses.length,1);assert.deepEqual(expenses[0].data,{description:'Internet',...payment});
  const bill=(await db.query('select data from public.vault_records where id=$1',[b.id])).rows[0].data;assert.equal(bill.status,'pago');assert.equal(bill.amount,100);assert.equal(bill.due_date,'2026-10-01');
+ const second=(await db.query(`insert into public.vault_records(entity,data) values ('Bill','{"description":"Teste","amount":10,"status":"pendente"}') returning id`)).rows[0];
+ const paySecond=p=>db.query('select public.pay_bill($1,$2::jsonb)',[second.id,JSON.stringify(p)]);
+ await assert.rejects(paySecond({...payment,category_id:'00000000-0000-0000-0000-000000000099'}));
+ await assert.rejects(paySecond({...payment,new_category:{name:' ',classification:'necessidade'}}));
+ await paySecond({...payment,new_category:{name:'Energia',classification:'necessidade'}});
+ await paySecond({...payment,new_category:{name:'Energia',classification:'necessidade'}});
+ const cats=(await db.query("select * from public.vault_records where entity='Category'")).rows;assert.equal(cats.length,1);assert.equal(cats[0].data.name,'Energia');
+ const linked=(await db.query("select data from public.vault_records where entity='Expense' and data->>'category'='Energia'")).rows;assert.equal(linked.length,1);assert.equal(linked[0].data.need_type,'necessidade');
+ const third=(await db.query(`insert into public.vault_records(entity,data) values ('Bill','{"description":"Teste 2","amount":10,"status":"pendente"}') returning id`)).rows[0];
+ await assert.rejects(db.query('select public.pay_bill($1,$2::jsonb)',[third.id,JSON.stringify({...payment,new_category:{name:'energia',classification:'desejo'}})]));
+ await db.query('select public.pay_bill($1,$2::jsonb)',[third.id,JSON.stringify({...payment,category_id:cats[0].id})]);
+ assert.equal((await db.query("select * from public.vault_records where entity='Category'")).rows.length,1);
  await db.exec('reset role;set role anon;');await assert.rejects(pay(payment));
  }finally{await db.close();}
 });

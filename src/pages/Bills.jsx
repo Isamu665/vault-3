@@ -33,12 +33,15 @@ export default function Bills() {
   const [detailItem, setDetailItem] = useState(null);
   const [paymentBill,setPaymentBill]=useState(null),[payment,setPayment]=useState({amount:'',category:'',date:'',payment_method:'pix'});
   const [paying,setPaying]=useState(''),[paymentError,setPaymentError]=useState(''),[notice,setNotice]=useState('');
+  const {items:categories,loading:categoriesLoading,error:categoriesError}=useCollection('Category');
+  const [categoryChoice,setCategoryChoice]=useState(''),[newName,setNewName]=useState(''),[newClass,setNewClass]=useState('necessidade');
+  const expenseCategories=categories.filter(c=>(!c.type || c.type==='despesa') && c.status!=='inactive');
   const { items, reload } = useCollection('Bill', 'due_date');
 
   const toggle = async (b) => {
     if(paying || b.status==='pago')return;
     setPaying(b.id);setPaymentError('');setNotice('');
-    try { const result=await vault.payBill(b.id,{...payment,amount:Number(payment.amount)});setNotice(result.alreadyPaid?'Esta conta já estava paga. Nenhuma despesa foi duplicada.':'Conta marcada como paga e despesa registrada com os dados confirmados.');setPaymentBill(null);reload(); }
+    try { const result=await vault.payBill(b.id,{...payment,amount:Number(payment.amount),...(categoryChoice==='new'?{new_category:{name:newName.trim(),classification:newClass}}:categoryChoice?{category_id:categoryChoice}:{})});setNotice(result.alreadyPaid?'Esta conta já estava paga. Nenhuma despesa foi duplicada.':'Conta marcada como paga e despesa registrada com os dados confirmados.');setPaymentBill(null);reload(); }
     catch(e){setPaymentError(e.message || 'Não foi possível registrar o pagamento.');}
     finally{setPaying('');}
   };
@@ -94,7 +97,7 @@ export default function Bills() {
                 <div className="flex items-center gap-3" onClick={(ev) => ev.stopPropagation()}>
                   <Badge className={`${s.cls} border-0 font-normal`}>{s.label}</Badge>
                   <span className="font-semibold">{brl(b.amount)}</span>
-                  <Button variant="ghost" size="icon" aria-label={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} title={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} disabled={!!paying || b.status==='pago'} className="h-8 w-8 text-emerald-600" onClick={() => {setPaymentError('');setPaymentBill(b);const d=new Date();setPayment({amount:String(b.amount),category:b.category || '',date:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),payment_method:'pix'});}}><Check className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" aria-label={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} title={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} disabled={!!paying || b.status==='pago'} className="h-8 w-8 text-emerald-600" onClick={() => {setPaymentError('');setCategoryChoice(expenseCategories.find(c=>c.name===b.category || c.id===b.category)?.id || '');setNewName('');setNewClass('necessidade');setPaymentBill(b);const d=new Date();setPayment({amount:String(b.amount),category:b.category || '',date:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),payment_method:'pix'});}}><Check className="w-4 h-4" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => remove(b.id)}><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
@@ -106,11 +109,13 @@ export default function Bills() {
       <Dialog open={!!paymentBill} onOpenChange={value=>{if(!value && !paying)setPaymentBill(null);}}><DialogContent><DialogHeader><DialogTitle>Confirmar pagamento</DialogTitle><DialogDescription>{paymentBill?.description} — a despesa será criada com os dados abaixo. O vencimento e o valor previsto da conta serão preservados.</DialogDescription></DialogHeader>
         <form className="space-y-4" onSubmit={e=>{e.preventDefault();toggle(paymentBill);}}>
           <label className="block text-sm">Valor pago<input required type="number" min="0.01" step="0.01" className="block w-full border rounded p-2 bg-background" value={payment.amount} onChange={e=>setPayment({...payment,amount:e.target.value})} disabled={!!paying}/></label>
-          <label className="block text-sm">Categoria<input className="block w-full border rounded p-2 bg-background" maxLength={200} value={payment.category} onChange={e=>setPayment({...payment,category:e.target.value})} disabled={!!paying}/></label>
+          <label className="block text-sm">Categoria<select required className="block w-full border rounded p-2 bg-background" value={categoryChoice} onChange={e=>setCategoryChoice(e.target.value)} disabled={!!paying || categoriesLoading || !!categoriesError}><option value="">Selecione uma categoria</option>{expenseCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}<option value="new">Criar nova categoria</option></select></label>
+          {categoriesError && <p role="alert" className="text-destructive text-sm">Não foi possível carregar suas categorias. Tente novamente.</p>}
+          {categoryChoice==='new' && <div className="border rounded p-3 space-y-3"><label className="block text-sm">Nome da nova categoria<input required maxLength={100} className="block w-full border rounded p-2 bg-background" value={newName} onChange={e=>setNewName(e.target.value)} disabled={!!paying}/></label><label className="block text-sm">Classificação<select className="block w-full border rounded p-2 bg-background" value={newClass} onChange={e=>setNewClass(e.target.value)} disabled={!!paying}><option value="necessidade">Necessidade</option><option value="desejo">Desejo</option></select></label><p className="text-xs text-muted-foreground">A categoria será criada somente ao confirmar este pagamento.</p></div>}
           <label className="block text-sm">Data do pagamento<input required type="date" className="block w-full border rounded p-2 bg-background" value={payment.date} onChange={e=>setPayment({...payment,date:e.target.value})} disabled={!!paying}/></label>
           <label className="block text-sm">Forma de pagamento<select className="block w-full border rounded p-2 bg-background" value={payment.payment_method} onChange={e=>setPayment({...payment,payment_method:e.target.value})} disabled={!!paying}>{['pix','dinheiro','débito','crédito','boleto','transferência'].map(method=><option key={method}>{method}</option>)}</select></label>
           {paymentError && <p role="alert" className="text-destructive text-sm">{paymentError}</p>}
-          <div className="flex gap-2"><Button type="button" variant="ghost" disabled={!!paying} onClick={()=>setPaymentBill(null)}>Cancelar</Button><Button type="submit" disabled={!!paying}>{paying?'Salvando…':'Confirmar pagamento e despesa'}</Button></div>
+          <div className="flex gap-2"><Button type="button" variant="ghost" disabled={!!paying} onClick={()=>setPaymentBill(null)}>Cancelar</Button><Button type="submit" disabled={!!paying || categoriesLoading || !!categoriesError || !categoryChoice || (categoryChoice==='new' && !newName.trim())}>{paying?'Salvando…':'Confirmar pagamento e despesa'}</Button></div>
         </form>
       </DialogContent></Dialog>
       <BillDialog open={open} onOpenChange={setOpen} bill={editing} onSaved={reload} />

@@ -64,7 +64,7 @@ export const vault = { entities: Object.fromEntries(ENTITIES.map(name => [name, 
   async payBill(id,payment) {
     await owner();
     const result=unwrap(await requireBackend().rpc('pay_bill',{bill_id:id,payment}));
-    changed('Bill'); changed('Expense'); return result;
+    changed('Bill'); changed('Expense'); changed('Category'); return result;
   },
 };
 
