@@ -1,0 +1,64 @@
+{
+  "name": "Category",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "receita",
+        "despesa",
+        "reserva"
+      ],
+      "default": "despesa"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "necessidade",
+        "desejo",
+        "patrim\u00f4nio"
+      ],
+      "default": "necessidade"
+    },
+    "color": {
+      "type": "string",
+      "default": "#6366f1"
+    },
+    "icon": {
+      "type": "string",
+      "default": "Tag"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "percentage": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "name": "Investment",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "tesouro_selic",
+        "acoes",
+        "etf",
+        "cdb",
+        "fundo",
+        "renda_fixa",
+        "cripto",
+        "outros"
+      ],
+      "default": "outros"
+    },
+    "reserve_id": {
+      "type": "string"
+    },
+    "applied_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "current_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "institution": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "taxa": {
+      "type": "number"
+    },
+    "vencimento": {
+      "type": "string",
+      "format": "date"
+    },
+    "quantidade": {
+      "type": "number"
+    },
+    "preco_medio": {
+      "type": "number"
+    },
+    "percentual_cdi": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "type"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

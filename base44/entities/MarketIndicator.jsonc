@@ -1,0 +1,66 @@
+{
+  "name": "MarketIndicator",
+  "type": "object",
+  "properties": {
+    "indicatorKey": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "value": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "referenceDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "referencePeriod": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "sourceSeries": {
+      "type": "string"
+    },
+    "sourceVariable": {
+      "type": "string"
+    },
+    "fetchedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "updated",
+        "stale",
+        "unavailable"
+      ],
+      "default": "updated"
+    }
+  },
+  "required": [
+    "indicatorKey",
+    "name",
+    "value"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "MarketIndicatorHistory",
+  "type": "object",
+  "properties": {
+    "indicatorKey": {
+      "type": "string"
+    },
+    "referenceDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "value": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "sourceSeries": {
+      "type": "string"
+    },
+    "sourceVariable": {
+      "type": "string"
+    },
+    "fetchedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "indicatorKey",
+    "referenceDate",
+    "value"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
