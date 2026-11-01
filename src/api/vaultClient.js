@@ -60,4 +60,11 @@ function entityClient(entity) {
   };
 }
 
-export const vault = { entities: Object.fromEntries(ENTITIES.map(name => [name, entityClient(name)])) };
+export const vault = { entities: Object.fromEntries(ENTITIES.map(name => [name, entityClient(name)])),
+  async payBill(id,payment) {
+    await owner();
+    const result=unwrap(await requireBackend().rpc('pay_bill',{bill_id:id,payment}));
+    changed('Bill'); changed('Expense'); return result;
+  },
+};
+
