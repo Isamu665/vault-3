@@ -1,6 +1,6 @@
 # V.A.U.L.T — independente do Base44
 
-Finanças pessoais em React/Vite, Supabase Auth/Postgres e funções de servidor. Não há SDK, proxy, assets ou chamadas de execução ao Base44.
+Finanças pessoais em React/Vite, Supabase Auth/Postgres e funções de servidor.
 
 ## Iniciar no VS Code
 
