@@ -59,7 +59,7 @@ Crie sua chave em https://aistudio.google.com/apikey e cadastre em [Edge Functio
 
 ```text
 GEMINI_API_KEY=<sua-chave-privada>
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 As funções já estão implantadas; a leitura do segredo acontece a cada requisição. Não adicione a chave em GitHub, `.env.local` do frontend ou variáveis `VITE_*`.
@@ -94,3 +94,4 @@ Esta entrega é PWA, não APK: não há assinatura Android nem publicação na P
 Faça cadastro e recuperação por e-mail, login Google e teste com duas contas. Cada conta deve enxergar apenas os próprios lançamentos. Teste criação/edição/exclusão, importação, relatórios, reservas/investimentos e respostas da IA com e sem compartilhamento.
 
 O painel de assistente foi revisado com dados fictícios. Não foram criadas contas de teste reais nem enviados dados financeiros à IA durante a preparação.
+

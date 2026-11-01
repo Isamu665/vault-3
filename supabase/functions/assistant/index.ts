@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { providerFailure } from './provider-error.mjs';
 
 const allowed = (Deno.env.get('ALLOWED_ORIGINS') || 'https://isamu665.github.io,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173').split(',').map(x => x.trim());
 Deno.serve(async req => {
@@ -34,7 +35,7 @@ Deno.serve(async req => {
       net: finite(snapshot.net), pendingBills: finite(snapshot.pendingBills),
       months: Array.isArray(snapshot.months) ? snapshot.months.slice(-6).map((m: Record<string,unknown>) => ({ month: String(m.month).slice(0,7), income: finite(m.income), expense: finite(m.expense) })) : [],
     } : null;
-    const model = Deno.env.get('GEMINI_MODEL') || 'gemini-2.5-flash';
+    const model = Deno.env.get('GEMINI_MODEL') || 'gemini-3.1-flash-lite';
     if (!/^[a-zA-Z0-9.-]+$/.test(model)) return respond({ error: 'Modelo de IA inválido.' }, 503);
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
       method: 'POST', signal: AbortSignal.timeout(45000),
@@ -45,7 +46,11 @@ Deno.serve(async req => {
         generationConfig: { maxOutputTokens: 1600, temperature: 0.3 },
       }),
     });
-    if (!response.ok) return respond({ error: 'O provedor de IA está indisponível ou sem cota. Tente mais tarde.' }, 502);
+    if (!response.ok) {
+      const failure = providerFailure(response.status, await response.json().catch(() => ({})));
+      console.error('gemini_provider_failure', JSON.stringify({ model, ...failure.diagnostic }));
+      return respond({ error: failure.error }, response.status === 429 ? 429 : 502);
+    }
     const result = await response.json();
     const content = result.candidates?.[0]?.content?.parts?.filter((p: {thought?:boolean}) => !p.thought).map((p: {text?:string}) => p.text || '').join('');
     if (!content) return respond({ error: 'A IA não retornou uma resposta. Tente reformular.' }, 502);
@@ -54,3 +59,4 @@ Deno.serve(async req => {
     return respond({ error: error instanceof SyntaxError ? 'Pedido inválido.' : 'Não foi possível responder agora.' }, error instanceof SyntaxError ? 400 : 500);
   }
 });
+
