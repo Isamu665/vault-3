@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,8 +20,8 @@ export default function GoalDialog({ open, onOpenChange, goal, onSaved }) {
     const payload = { ...form, target_amount: Number(form.target_amount) || 0, current_amount: Number(form.current_amount) || 0 };
     if (!payload.deadline) delete payload.deadline;
     delete payload.id;
-    if (goal?.id) await base44.entities.Goal.update(goal.id, payload);
-    else await base44.entities.Goal.create(payload);
+    if (goal?.id) await vault.entities.Goal.update(goal.id, payload);
+    else await vault.entities.Goal.create(payload);
     setSaving(false);
     onOpenChange(false);
     onSaved();

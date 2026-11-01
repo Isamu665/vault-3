@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Check, Trash2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import Section from '@/components/finance/Section';
@@ -33,10 +33,10 @@ export default function Bills() {
   const { items, reload } = useCollection('Bill', 'due_date');
 
   const toggle = async (b) => {
-    await base44.entities.Bill.update(b.id, { status: b.status === 'pago' ? 'pendente' : 'pago' });
+    await vault.entities.Bill.update(b.id, { status: b.status === 'pago' ? 'pendente' : 'pago' });
     reload();
   };
-  const remove = async (id) => { await base44.entities.Bill.delete(id); reload(); };
+  const remove = async (id) => { await vault.entities.Bill.delete(id); reload(); };
 
   const week = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek());

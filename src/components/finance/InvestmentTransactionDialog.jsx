@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,7 @@ export default function InvestmentTransactionDialog({ open, onOpenChange, invest
     if (amount <= 0) return;
     setSaving(true);
 
-    await base44.entities.InvestmentTransaction.create({
+    await vault.entities.InvestmentTransaction.create({
       investment_id: investment.id,
       amount,
       date: form.date,
@@ -29,7 +29,7 @@ export default function InvestmentTransactionDialog({ open, onOpenChange, invest
     const newApplied = (investment.applied_amount || 0) + amount;
     const baseCurrent = investment.current_amount || (investment.applied_amount || 0);
     const newCurrent = baseCurrent + amount;
-    await base44.entities.Investment.update(investment.id, { applied_amount: newApplied, current_amount: newCurrent });
+    await vault.entities.Investment.update(investment.id, { applied_amount: newApplied, current_amount: newCurrent });
 
     setSaving(false);
     onOpenChange(false);

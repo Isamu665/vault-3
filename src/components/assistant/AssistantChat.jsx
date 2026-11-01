@@ -1,215 +1,107 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { base44 } from '@/api/base44Client';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { BarChart3, Sparkles, Send, Loader2, ArrowUpRight, ShieldCheck, Plus, Copy, Download } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Mic, Send, X, Loader2, MessageSquare } from 'lucide-react';
+import useCollection from '@/hooks/useCollection';
+import { requireBackend } from '@/api/supabase';
+import { financialSnapshot } from '@/lib/assistant-summary.mjs';
+import { brl } from '@/lib/finance';
 import MessageBubble from './MessageBubble';
-import { motion } from 'framer-motion';
 
-const AGENT_NAME = 'financial_assistant';
-
-const SUGGESTIONS = [
-  'Quanto gastei este mês?',
-  'Como está meu saldo?',
-  'Registrar despesa',
-  'Minhas metas',
-  'Registrar receita',
-  'Contas próximas do vencimento',
-];
-
+const QUESTIONS = ['Como posso organizar meu orçamento?', 'Como montar uma reserva de emergência?', 'Como interpretar meus gastos do mês?'];
 export default function AssistantChat({ open, onClose }) {
-  const [conversation, setConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const bottomRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
-
-  // Criar/obter conversa quando o chat abre
-  useEffect(() => {
-    if (!open) return;
-
-    async function init() {
-      try {
-        const convs = await base44.agents.listConversations({ agent_name: AGENT_NAME });
-        if (convs && convs.length > 0) {
-          const conv = await base44.agents.getConversation(convs[0].id);
-          setConversation(conv);
-          setMessages(conv.messages || []);
-        } else {
-          const conv = await base44.agents.createConversation({
-            agent_name: AGENT_NAME,
-            metadata: { name: 'Assistente V.A.U.L.T' }
-          });
-          setConversation(conv);
-          setMessages([]);
-        }
-      } catch (e) {
-        console.error('Erro ao iniciar conversa:', e);
+  // Mount only while opened: requests and chart layout don't run behind a closed panel.
+  return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}>
+    <DialogContent className="max-w-3xl w-[calc(100%_-_1rem)] h-[min(90dvh,820px)] p-0 overflow-hidden rounded-3xl flex flex-col gap-0">
+      <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-br from-indigo-600/10 to-emerald-500/5 border-b">
+        <div className="flex items-center gap-3"><div className="p-3 bg-indigo-600 text-white rounded-2xl"><Sparkles className="w-5 h-5" /></div>
+          <div><DialogTitle>V.A.U.L.T Insights</DialogTitle><DialogDescription>Clareza para decidir o seu próximo passo.</DialogDescription></div></div>
+      </DialogHeader>
+      {open && <AssistantContent onClose={onClose} />}
+    </DialogContent>
+  </Dialog>;
+}
+function AssistantContent({ onClose }) {
+  const { items: incomes, loading: loadingIn, error: incomeError } = useCollection('Income');
+  const { items: expenses, loading: loadingOut, error: expenseError } = useCollection('Expense');
+  const { items: bills, loading: loadingBills, error: billsError } = useCollection('Bill');
+  const loading = loadingIn || loadingOut || loadingBills;
+  const dataError = incomeError || expenseError || billsError;
+  const snapshot = useMemo(() => financialSnapshot(incomes, expenses, bills), [incomes, expenses, bills]);
+  const [view, setView] = useState('overview'), [messages, setMessages] = useState([]);
+  const [input, setInput] = useState(''), [sending, setSending] = useState(false), [error, setError] = useState('');
+  const [share, setShare] = useState(false);
+  const bottom = useRef(null), controller = useRef(null);
+  useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending]);
+  const send = async text => {
+    if (!text.trim() || sending) return;
+    setView('chat'); setError(''); setInput(''); setSending(true);
+    setMessages(previous => [...previous, { role: 'user', content: text.trim() }]);
+    controller.current = new AbortController();
+    try {
+      const result = await requireBackend().functions.invoke('assistant', {
+        body: { message: text.trim(), shareSummary: share && !loading && !dataError, snapshot: share && !loading && !dataError ? snapshot : null },
+        signal: controller.current.signal,
+      });
+      if (result.error) {
+        let detail = '';
+        try { detail = (await result.error.context?.json())?.error; } catch { /* use fallback */ }
+        throw new Error(detail || 'Assistente indisponível. Confira sua conexão e tente novamente.');
       }
-    }
-    init();
-  }, [open]);
-
-  // Subscription para novos messages
-  useEffect(() => {
-    if (!conversation?.id) return;
-    const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      setMessages(data.messages || []);
-    });
-    return () => unsub();
-  }, [conversation?.id]);
-
-  // Scroll para baixo quando novas mensagens chegam
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, sending]);
-
-  const sendMessage = useCallback(async (text) => {
-    if (!conversation || !text.trim()) return;
-    setSending(true);
-    setInput('');
-    try {
-      await base44.agents.addMessage(conversation, { role: 'user', content: text.trim() });
+      if (!result.data?.content) throw new Error('A IA não retornou uma resposta.');
+      setMessages(previous => [...previous, { role: 'assistant', content: result.data.content }]);
     } catch (e) {
-      console.error('Erro ao enviar mensagem:', e);
-    } finally {
-      setSending(false);
-    }
-  }, [conversation]);
-
-  // --- Gravação de voz ---
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
-      recorder.start();
-      setRecording(true);
-    } catch (e) {
-      console.error('Microfone não disponível:', e);
-    }
-  }, []);
-
-  const stopRecording = useCallback(() => {
-    return new Promise((resolve) => {
-      const recorder = mediaRecorderRef.current;
-      if (!recorder || recorder.state === 'inactive') { setRecording(false); resolve(); return; }
-      recorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const file = new File([blob], 'voz.webm', { type: 'audio/webm' });
-        setTranscribing(true);
-        try {
-          const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-          const transcript = await base44.integrations.Core.TranscribeAudio({ audio_url: file_url });
-          if (transcript) setInput(transcript);
-        } catch (e) {
-          console.error('Erro na transcrição:', e);
-        } finally {
-          setTranscribing(false);
-          setRecording(false);
-        }
-        resolve();
-      };
-      recorder.stop();
-      recorder.stream.getTracks().forEach(t => t.stop());
-    });
-  }, []);
-
-  if (!open) return null;
-
-  const showSuggestions = messages.length === 0;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed inset-0 z-50 flex flex-col bg-background md:inset-auto md:bottom-20 md:right-4 md:h-[600px] md:w-[420px] md:rounded-2xl md:shadow-2xl md:border"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-            <MessageSquare className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold">Assistente V.A.U.L.T</h3>
-            <p className="text-[11px] text-muted-foreground">Financeiro pessoal</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-        {showSuggestions && (
-          <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-            <MessageSquare className="h-10 w-10 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">Olá! Sou seu assistente financeiro.<br/>Como posso ajudar?</p>
-            <div className="flex flex-wrap justify-center gap-2 mt-2">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => sendMessage(s)}
-                  className="rounded-full border bg-muted px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
-          <MessageBubble key={i} message={msg} />
-        ))}
-        {sending && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input */}
-      <div className="border-t px-3 py-3">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={recording ? 'destructive' : 'ghost'}
-            size="icon"
-            className="shrink-0"
-            onClick={() => (recording ? stopRecording() : startRecording())}
-            disabled={transcribing}
-          >
-            {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-          </Button>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
-            placeholder={recording ? 'Fale agora…' : 'Digite sua pergunta…'}
-            disabled={sending || recording}
-          />
-          <Button
-            size="icon"
-            className="shrink-0"
-            onClick={() => sendMessage(input)}
-            disabled={!input.trim() || sending || recording}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </motion.div>
-  );
+      if (e.name !== 'AbortError') { setError(e.message); setInput(text); }
+    } finally { setSending(false); }
+  };
+  const exportChat = () => {
+    const body = messages.map(message => (message.role === 'user' ? 'Você' : 'V.A.U.L.T') + ':\n' + message.content).join('\n\n');
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'vault-conversa.txt'; a.click(); URL.revokeObjectURL(url);
+  };
+  return <>
+    <div className="flex justify-between gap-3 border-b px-4 py-3">
+      <div className="flex gap-2">{[['overview','Panorama',BarChart3],['chat','Conversar',Sparkles]].map(([key,label,Icon]) =>
+        <Button key={key} size="sm" variant={view === key ? 'default' : 'ghost'} aria-pressed={view === key} onClick={() => setView(key)}><Icon className="w-4 h-4 mr-2" />{label}</Button>)}</div>
+      <div className="flex gap-1"><Button size="icon" variant="ghost" aria-label="Exportar conversa" disabled={!messages.length} onClick={exportChat}><Download className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" aria-label="Nova conversa" disabled={sending} onClick={() => { setMessages([]); setError(''); }}><Plus className="w-4 h-4" /></Button></div>
+    </div>
+    <div className="flex-1 min-h-0 overflow-y-auto p-5">
+      {view === 'overview' ? <div className="space-y-5">
+        <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Lançamentos em {snapshot.period}</p><h2 className="text-xl font-semibold mt-1">Seu mês, em perspectiva</h2></div>
+        {loading ? <p role="status">Carregando seus números…</p> : dataError ? <p role="alert" className="text-destructive">Não foi possível carregar o panorama. Tente novamente mais tarde.</p> : <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{[['Receitas',snapshot.income],['Despesas comuns',snapshot.expense],['Receitas − despesas',snapshot.net]].map(([label,value]) =>
+            <div key={label} className="rounded-2xl border bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="text-lg font-semibold tabular-nums mt-1">{brl(value)}</p></div>)}</div>
+          <p className="text-xs text-muted-foreground">A diferença acima não desconta aportes em reservas ou investimentos. Veja o saldo disponível no painel.</p>
+          <section className="rounded-2xl border p-4"><h3 className="text-sm font-medium mb-4">Receitas e despesas · últimos 6 meses</h3>
+            <div className="h-44" role="img" aria-label="Evolução mensal das receitas e despesas, com valores detalhados abaixo"><ResponsiveContainer width="100%" height="100%"><AreaChart data={snapshot.months}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.15} /><XAxis dataKey="month" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} width={45} />
+              <Tooltip formatter={value => brl(value)} /><Area type="monotone" name="Receitas" dataKey="income" stroke="#10b981" fill="#10b981" fillOpacity={0.12} /><Area type="monotone" name="Despesas" dataKey="expense" stroke="#818cf8" fill="#818cf8" fillOpacity={0.15} />
+            </AreaChart></ResponsiveContainer></div>
+            <details className="mt-2 text-xs text-muted-foreground"><summary className="cursor-pointer">Ver valores</summary><ul>{snapshot.months.map(m => <li key={m.month}>{m.month}: receitas {brl(m.income)} · despesas {brl(m.expense)}</li>)}</ul></details>
+          </section>
+          <section className="rounded-2xl border p-4"><h3 className="text-sm font-medium mb-3">Onde estão os gastos deste mês?</h3>
+            {snapshot.categories.length ? <><div className="h-40" role="img" aria-label="Ranking de despesas por categoria"><ResponsiveContainer width="100%" height="100%"><BarChart layout="vertical" data={snapshot.categories.slice(0,5)}><XAxis type="number" hide /><YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} /><Tooltip formatter={value => brl(value)} /><Bar name="Despesas" dataKey="value" fill="#818cf8" radius={[0,6,6,0]} /></BarChart></ResponsiveContainer></div><ul className="sr-only">{snapshot.categories.map(c => <li key={c.name}>{c.name}: {brl(c.value)}</li>)}</ul></> : <p className="text-sm text-muted-foreground">Suas categorias aparecem aqui após os primeiros lançamentos.</p>}
+          </section>
+        </>}
+        <div className="grid grid-cols-2 gap-2"><Link onClick={onClose} to="/despesas" className="rounded-xl border p-3 text-sm flex justify-between">Registrar despesa<ArrowUpRight className="w-4 h-4" /></Link><Link onClick={onClose} to="/metas" className="rounded-xl border p-3 text-sm flex justify-between">Revisar metas<ArrowUpRight className="w-4 h-4" /></Link></div>
+      </div> : <div className="flex flex-col gap-4">
+        {!messages.length && <div className="py-6"><Sparkles className="w-8 h-8 text-indigo-400 mb-3" /><h2 className="text-xl font-semibold">Vamos transformar números em próximos passos.</h2><p className="text-sm text-muted-foreground mt-2">Faça uma pergunta por vez. A conversa fica apenas neste painel e é apagada ao fechá-lo.</p><div className="flex flex-wrap gap-2 mt-5">{QUESTIONS.map(q => <button disabled={sending} key={q} className="rounded-xl border px-3 py-2 text-xs text-left hover:bg-muted" onClick={() => send(q)}>{q}</button>)}</div></div>}
+        {messages.map((message,index) => <div key={index}><MessageBubble message={message} />{message.role === 'assistant' && <button className="mt-1 text-xs text-muted-foreground flex gap-1 items-center" onClick={() => navigator.clipboard.writeText(message.content).catch(() => setError('Não foi possível copiar. Selecione o texto manualmente.'))}><Copy className="w-3 h-3" />Copiar</button>}</div>)}
+        {sending && <p role="status" className="text-sm text-muted-foreground flex gap-2"><Loader2 className="w-4 h-4 animate-spin" />Preparando sua resposta…</p>}
+        <div ref={bottom} />
+      </div>}
+      {error && <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    </div>
+    <form className="border-t p-4 bg-muted/20" onSubmit={e => { e.preventDefault(); send(input); }}>
+      <label className="flex items-start gap-2 text-xs text-muted-foreground mb-3"><input type="checkbox" checked={share} disabled={loading || !!dataError || sending} onChange={e => setShare(e.target.checked)} />
+        <span>Enviar à IA Google/Gemini os totais do mês, de contas pendentes e dos últimos 6 meses. Não inclui descrições nem identificação dos lançamentos.</span></label>
+      <div className="flex gap-2"><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} disabled={sending} placeholder="O que você quer entender melhor?" className="flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
+        <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
+      <p className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2"><ShieldCheck className="w-3 h-3" />A IA recebe sua pergunta ao enviar. Não altera seus cadastros nem movimenta dinheiro.</p>
+    </form>
+  </>;
 }

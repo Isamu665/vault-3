@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,8 +39,8 @@ export default function ExpenseDialog({ open, onOpenChange, expense, categories,
       installment_current: form.installment ? Number(form.installment_current) || null : null,
     };
     delete payload.id;
-    if (expense?.id) await base44.entities.Expense.update(expense.id, payload);
-    else await base44.entities.Expense.create(payload);
+    if (expense?.id) await vault.entities.Expense.update(expense.id, payload);
+    else await vault.entities.Expense.create(payload);
     setSaving(false);
     onOpenChange(false);
     onSaved();

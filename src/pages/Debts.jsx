@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import EmptyState from '@/components/finance/EmptyState';
@@ -16,7 +16,7 @@ export default function Debts() {
   const [detailItem, setDetailItem] = useState(null);
   const { items, reload } = useCollection('Debt', '-created_date');
 
-  const remove = async (id) => { await base44.entities.Debt.delete(id); reload(); };
+  const remove = async (id) => { await vault.entities.Debt.delete(id); reload(); };
 
   const calc = (d) => {
     const total = (d.installments_total || 0) * (d.installment_amount || 0);

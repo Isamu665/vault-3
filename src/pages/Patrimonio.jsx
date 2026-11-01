@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Pencil, TrendingUp, TrendingDown, Gem, Wallet, Target, History, ArrowDownToLine, ArrowUpFromLine, RefreshCw, LineChart } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import StatCard from '@/components/finance/StatCard';
@@ -52,19 +52,19 @@ export default function Patrimonio() {
   const profitability = totalApplied ? (totalProfit / totalApplied) * 100 : 0;
 
   const deleteReserve = async (id) => {
-    const linkedTxs = await base44.entities.ReserveTransaction.filter({ reserve_id: id });
-    for (const tx of linkedTxs) await base44.entities.ReserveTransaction.delete(tx.id);
-    const linkedExpenses = await base44.entities.Expense.filter({ reserve_id: id });
-    for (const e of linkedExpenses) await base44.entities.Expense.delete(e.id);
-    await base44.entities.Reserve.delete(id);
+    const linkedTxs = await vault.entities.ReserveTransaction.filter({ reserve_id: id });
+    for (const tx of linkedTxs) await vault.entities.ReserveTransaction.delete(tx.id);
+    const linkedExpenses = await vault.entities.Expense.filter({ reserve_id: id });
+    for (const e of linkedExpenses) await vault.entities.Expense.delete(e.id);
+    await vault.entities.Reserve.delete(id);
     reloadAll();
   };
   const deleteInvestment = async (id) => {
-    const linkedTxs = await base44.entities.InvestmentTransaction.filter({ investment_id: id });
-    for (const tx of linkedTxs) await base44.entities.InvestmentTransaction.delete(tx.id);
-    const linkedExpenses = await base44.entities.Expense.filter({ investment_id: id });
-    for (const e of linkedExpenses) await base44.entities.Expense.delete(e.id);
-    await base44.entities.Investment.delete(id);
+    const linkedTxs = await vault.entities.InvestmentTransaction.filter({ investment_id: id });
+    for (const tx of linkedTxs) await vault.entities.InvestmentTransaction.delete(tx.id);
+    const linkedExpenses = await vault.entities.Expense.filter({ investment_id: id });
+    for (const e of linkedExpenses) await vault.entities.Expense.delete(e.id);
+    await vault.entities.Investment.delete(id);
     reloadAll();
   };
 

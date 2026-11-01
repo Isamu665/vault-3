@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Repeat, Pencil, Trash2, CreditCard } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import MonthPicker from '@/components/finance/MonthPicker';
@@ -30,7 +30,7 @@ export default function Expenses() {
     .filter((e) => cat === 'todas' || e.category === cat)
     .filter((e) => (e.description + (e.category || '')).toLowerCase().includes(q.toLowerCase()));
 
-  const remove = async (id) => { await base44.entities.Expense.delete(id); reload(); };
+  const remove = async (id) => { await vault.entities.Expense.delete(id); reload(); };
   const colorOf = (name) => categories.find((c) => c.name === name)?.color || '#64748b';
 
   return (

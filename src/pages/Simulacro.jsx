@@ -59,6 +59,10 @@ export default function Simulacro() {
   const patrimonioAmount = (Number(income) || 0) * ((patrimonioCat?.percentage || 20) / 100);
 
   useEffect(() => { fetchIndicators(); }, []);
+  useEffect(() => {
+    if (indicatorStatus === 'loading') return;
+    if (!['CDI_ANNUAL', 'IPCA_12M', 'SELIC_META'].every(key => indicators.some(i => i.indicatorKey === key))) setRateMode('custom');
+  }, [indicators, indicatorStatus, rateMode]);
 
   const fetchIndicators = async (force = false) => {
     if (force) setRefreshing(true);
@@ -111,6 +115,8 @@ export default function Simulacro() {
   return (
     <div>
       <PageHeader title="Simulacro" subtitle="Simule o crescimento do seu patrimônio com indicadores reais" />
+      {indicatorStatus !== 'loading' && !['CDI_ANNUAL','IPCA_12M','SELIC_META'].every(key => indicators.some(i => i.indicatorKey === key)) &&
+        <p role="status" className="mb-4 rounded-xl bg-amber-100 text-amber-950 p-3 text-sm">Alguns indicadores estão indisponíveis. A simulação usa taxas personalizadas: revise as hipóteses antes de interpretar os resultados.</p>}
 
       {/* === Indicadores de referência === */}
       <Section title="Indicadores de referência" className="mb-6" action={

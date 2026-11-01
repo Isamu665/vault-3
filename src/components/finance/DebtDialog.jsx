@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,8 +29,8 @@ export default function DebtDialog({ open, onOpenChange, debt, onSaved }) {
       cet: Number(form.cet) || 0,
     };
     delete payload.id;
-    if (debt?.id) await base44.entities.Debt.update(debt.id, payload);
-    else await base44.entities.Debt.create(payload);
+    if (debt?.id) await vault.entities.Debt.update(debt.id, payload);
+    else await vault.entities.Debt.create(payload);
     setSaving(false);
     onOpenChange(false);
     onSaved();

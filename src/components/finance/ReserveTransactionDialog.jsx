@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +21,7 @@ export default function ReserveTransactionDialog({ open, onOpenChange, reserve, 
     if (amount <= 0) return;
     setSaving(true);
 
-    await base44.entities.ReserveTransaction.create({
+    await vault.entities.ReserveTransaction.create({
       reserve_id: reserve.id,
       amount,
       date: form.date,
@@ -32,7 +32,7 @@ export default function ReserveTransactionDialog({ open, onOpenChange, reserve, 
     const newBalance = isWithdrawal
       ? (reserve.current_amount || 0) - amount
       : (reserve.current_amount || 0) + amount;
-    await base44.entities.Reserve.update(reserve.id, { current_amount: newBalance });
+    await vault.entities.Reserve.update(reserve.id, { current_amount: newBalance });
 
     setSaving(false);
     onOpenChange(false);

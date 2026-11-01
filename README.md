@@ -1,68 +1,62 @@
-# V.A.U.L.T
+# V.A.U.L.T — independente do Base44
 
-Aplicativo de finanças em React, Vite e Tailwind. Preparado para publicar a interface no GitHub Pages, mantendo autenticação, banco e integrações no Base44.
+Finanças pessoais em React/Vite, Supabase Auth/Postgres e funções de servidor. Não há SDK, proxy, assets ou chamadas de execução ao Base44.
 
-## Desenvolvimento local
+## Iniciar no VS Code
 
-Requer Node.js 22 e npm. Abra esta pasta no VS Code:
+Requer Node.js 22 ou superior com npm.
 
 ```sh
 npm ci
 ```
 
-Copie `.env.example` para `.env.local` e execute:
+Copie `.env.example` para `.env.local`. As duas variáveis são públicas; não use a chave secret/service_role.
 
 ```sh
-npm run dev
+npm run dev -- --host 127.0.0.1
 ```
 
-As variáveis `VITE_*` são públicas e entram no JavaScript do navegador. Nunca coloque senhas, tokens de usuário ou chaves de serviço nelas.
-
-## Publicar no GitHub Pages
-
-Repositório: https://github.com/Isamu665/vault-3
-Endereço previsto após ativação: https://isamu665.github.io/vault-3/
-
-1. Em Settings → Pages, confirme que seu plano permite Pages neste repositório privado e selecione Source → GitHub Actions. Não é necessário tornar o código público se seu plano oferece Pages privado. A página publicada normalmente fica pública, mesmo com código privado.
-2. Em Settings → Secrets and variables → Actions → Variables, adicione `ENABLE_PAGES` com valor `true`.
-3. Em Actions → Build and publish V.A.U.L.T → Run workflow, execute na branch `main`.
-4. Depois de ativado, novos commits em `main` verificam, compilam e publicam automaticamente.
-
-Até configurar `ENABLE_PAGES`, o workflow apenas verifica e gera o artefato. A publicação fica desativada para evitar falhas enquanto Pages não estiver configurado. GitHub Free oferece Pages em repositórios públicos; um repositório privado exige plano compatível. Não mude a visibilidade sem decidir se deseja expor o código.
-
-## Build e validação
+Para validar a mesma versão usada no GitHub:
 
 ```sh
 npm run lint
 npm test
 npm run build:pages
-npm run preview -- --mode github-pages
+npm run preview -- --mode github-pages --host 127.0.0.1
 ```
 
-Abra o endereço mostrado pelo preview, terminado em `/vault-3/`. `npm run build` continua disponível para o fluxo original na raiz.
+Abra o endereço terminado em `/vault-3/`. O build comum para hospedagem na raiz usa `npm run build`.
 
-A versão Pages usa `/vault-3/` nos assets, manifesto, roteamento e retornos de login. `404.html` carrega a aplicação em links diretos; o GitHub pode responder HTTP 404 ao abrir uma rota interna, embora a tela funcione. O modo Pages não injeta as ferramentas do editor Base44.
+## O que foi implementado
 
-Build, lint e os testes de retorno seguro passaram na preparação. `npm run typecheck` ainda apresenta inconsistências herdadas; elas não foram desativadas. Login autenticado, Google, recuperação de senha e telas com dados precisam ser validados no domínio final. A inspeção visual local foi interrompida pela ferramenta do navegador e não foi concluída.
+- Cadastro, confirmação de e-mail, recuperação de senha e login Google por Supabase.
+- Dados por conta, protegidos por RLS no Postgres, sem dependência de filtros do navegador para segurança.
+- Receitas, despesas, categorias, contas, dívidas, metas, reservas e investimentos usando o novo banco.
+- Atualizações ao vivo e cache de consultas separado por usuário.
+- Assistente com panorama, gráficos mensais, ranking por categoria, Markdown, exportação/cópia e links para ações.
+- Função Gemini autenticada, segredo no servidor, limite de 30 perguntas por usuário por dia UTC e consentimento para enviar totais.
+- Indicadores consultados diretamente do BCB por função de servidor; nenhuma taxa é gerada por IA.
+- Backup/importação JSON com IDs estáveis e preservação de vínculos.
+- Aplicativo web instalável (PWA), ícones locais e cache apenas dos arquivos da interface.
 
-## Backend e autenticação
+## Ativação
 
-- `src/api/base44Client.js`: cliente SDK com API remota explícita, sem depender de proxy no Pages.
-- `src/lib/AuthContext.jsx`: consulta configurações públicas diretamente em `https://base44.app`.
-- `.env.example`: identificador público, domínio do aplicativo Base44 e servidor da API.
-- `base44/entities`: esquemas e regras existentes, sem registros financeiros.
-- `base44/agents`: definição do assistente.
+Veja [docs/SETUP.md](docs/SETUP.md) para login Google, links de e-mail, chave Gemini e GitHub Pages. O projeto Supabase já recebeu as migrações e as duas funções; as credenciais de Google/Gemini e a hospedagem ainda dependem das configurações da sua conta.
 
-O Pages hospeda arquivos estáticos e não executa servidor ou banco. Os serviços continuam no Base44. As consultas públicas de configuração responderam com CORS `*` para a origem prevista; isso não comprova todos os fluxos autenticados. Não foram usadas credenciais nem modificados dados em produção durante a preparação.
+Não foi gerado APK. A entrega escolhida é a web no GitHub Pages, instalável pelo navegador. Depois de publicar, no Chrome Android use “Adicionar à tela inicial” / “Instalar aplicativo”. Dados e IA precisam de internet.
 
-Ao usar o site e alterar receitas, despesas ou outros cadastros, você continuará alterando os dados reais no Base44. Google e recuperação de senha dependem das regras de redirecionamento do Base44. Se o retorno for recusado, será necessário autorizar o domínio de publicação na configuração do provedor. A rota OAuthConsent herdada não está registrada no roteador atual; integrações MCP não foram ativadas nesta migração.
+## Dados antigos e portabilidade
 
-## Arquivos fora do Git
+O novo banco começa vazio. O aplicativo antigo e os registros no Base44 não foram alterados. Exporte seus dados autorizados e use “Seus dados” para importar o JSON. Consulte [docs/MIGRATION.md](docs/MIGRATION.md). Senhas e sessões antigas não são transferidas; cada usuário deve criar sua conta nova.
 
-`.env.local`, `node_modules`, `dist`, `.tools`, backups e dados financeiros não devem ser enviados. Para trabalhar depois em outro computador, clone o repositório e siga o desenvolvimento local acima.
+Os esquemas antigos estão em `docs/legacy-schema` apenas como referência histórica. Não são usados pelo aplicativo. A regra de orçamento é guardada neste navegador, separada por usuário; não sincroniza entre dispositivos. O chat é temporário e é descartado ao fechar o painel; cada pergunta é independente.
 
-## Referências
+## Verificação e limites
 
-- https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
-- https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/about-github-pages-and-jekyll
-- https://docs.base44.com/developers/references/sdk/getting-started/client
+Os testes cobrem isolamento entre contas em Postgres/PGlite, bloqueio de acesso anônimo, identidade imutável, atualizações atômicas de campos, importação idempotente, vínculos e cálculos do assistente. A proteção contra chamadas sem autenticação e tokens inválidos foi verificada no Supabase implantado.
+
+`npm run typecheck` permanece disponível e ainda aponta problemas de tipagem herdados nas telas/componentes antigos. A checagem não foi desativada. O build avisa sobre o tamanho de alguns pacotes. Fluxos reais de confirmação de e-mail, recuperação e Google precisam ser testados após configurar as URLs e credenciais externas.
+
+O modelo não altera dados financeiros. O cache offline não armazena respostas de API, dados financeiros, tokens, senhas ou respostas da IA. A sessão de login usa o armazenamento padrão do Supabase no navegador.
+
+As funções de formulário que movimentam múltiplos registros continuam seguindo os passos do app original; o merge de campos é atômico, mas operações de negócio com vários registros ainda não são uma transação única. Alterações concorrentes em reservas/investimentos devem ser validadas antes de uso em larga escala.

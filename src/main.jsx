@@ -6,3 +6,5 @@ import '@/index.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />
 )
+
+import '@/lib/register-pwa';

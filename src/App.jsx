@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import SetupRequired from '@/components/SetupRequired';
+import DataSettings from '@/pages/DataSettings';
+import DataConnectionBanner from '@/components/DataConnectionBanner';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
@@ -28,9 +30,11 @@ import SplashScreen from '@/components/SplashScreen';
 import { AppReadyProvider, useAppReady } from '@/lib/appReady';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isConfigured, recovery, user } = useAuth();
+  const location = useLocation();
+  if (!isConfigured) return <SetupRequired />;
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -38,17 +42,10 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
-  }
+  if (recovery && location.pathname !== '/reset-password') return <Navigate to="/reset-password" replace />;
 
   return (
-    <Routes>
+    <div key={user?.id || 'signed-out'}><DataConnectionBanner /><Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -66,10 +63,11 @@ const AuthenticatedApp = () => {
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/simulacro" element={<Simulacro />} />
           <Route path="/patrimonio" element={<Patrimonio />} />
+          <Route path="/dados" element={<DataSettings />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    </Routes></div>
   );
 };
 

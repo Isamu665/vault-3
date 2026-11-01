@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Pencil, Trash2, MapPin } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import EmptyState from '@/components/finance/EmptyState';
@@ -16,7 +16,7 @@ export default function Goals() {
   const [detailItem, setDetailItem] = useState(null);
   const { items, reload } = useCollection('Goal', '-created_date');
 
-  const remove = async (id) => { await base44.entities.Goal.delete(id); reload(); };
+  const remove = async (id) => { await vault.entities.Goal.delete(id); reload(); };
 
   return (
     <div>

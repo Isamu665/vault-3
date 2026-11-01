@@ -3,10 +3,11 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, TrendingUp, TrendingDown, PieChart, CalendarCheck,
-  Landmark, Target, Tags, BarChart3, Moon, Sun, Menu, X, Wallet, LogOut, Calculator, Gem } from
+  Landmark, Target, Tags, BarChart3, Moon, Sun, Menu, X, Wallet, LogOut, Calculator, Gem, Database } from
 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 import useRuleConfig from '@/hooks/useRuleConfig';
 import FloatingAssistantButton from '@/components/assistant/FloatingAssistantButton';
 
@@ -21,10 +22,12 @@ const NAV = [
   { to: '/metas', label: 'Metas', icon: Target },
 { to: '/categorias', label: 'Categorias', icon: Tags },
 { to: '/simulacro', label: 'Simulacro', icon: Calculator },
-{ to: '/relatorios', label: 'Relatórios', icon: BarChart3 }];
+{ to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
+{ to: '/dados', label: 'Seus dados', icon: Database }];
 
 
 export default function Layout() {
+  const { logout } = useAuth();
   const { pathname } = useLocation();
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [open, setOpen] = useState(false);
@@ -108,7 +111,7 @@ export default function Layout() {
           <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl" onClick={() => setDark(!dark)}>
             {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} {dark ? 'Tema claro' : 'Tema escuro'}
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-muted-foreground" onClick={() => base44.auth.logout()}>
+          <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-muted-foreground" onClick={() => logout().catch(error => toast({ title: 'Não foi possível sair', description: error.message, variant: 'destructive' }))}>
             <LogOut className="w-4 h-4" /> Sair
           </Button>
         </div>

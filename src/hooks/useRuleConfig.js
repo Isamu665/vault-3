@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 
 const STORAGE_KEY = 'rule_50_30_20_config';
 
@@ -11,9 +12,11 @@ export const DEFAULT_RULE_CONFIG = {
 };
 
 export default function useRuleConfig() {
+  const { user } = useAuth();
+  const storageKey = STORAGE_KEY + ':' + user.id;
   const [config, setConfig] = useState(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         // Migration: remove subcategories if present in old stored config
@@ -34,8 +37,8 @@ export default function useRuleConfig() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  }, [config]);
+    localStorage.setItem(storageKey, JSON.stringify(config));
+  }, [config, storageKey]);
 
   const updatePercentage = useCallback((catKey, percentage) => {
     setConfig((prev) => ({

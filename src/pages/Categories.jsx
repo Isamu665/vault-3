@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Sparkles, Pencil } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import EmptyState from '@/components/finance/EmptyState';
@@ -47,17 +47,17 @@ export default function Categories() {
       color: form.color,
       status: form.status,
     };
-    if (editing) await base44.entities.Category.update(editing.id, payload);
-    else await base44.entities.Category.create(payload);
+    if (editing) await vault.entities.Category.update(editing.id, payload);
+    else await vault.entities.Category.create(payload);
     setForm({ name: '', type: 'despesa', classification: 'necessidade', percentage: '', color: COLORS[0], status: 'active' });
     setEditing(null);
     reload();
   };
 
-  const remove = async (id) => { await base44.entities.Category.delete(id); reload(); };
-  const toggleStatus = async (c) => { await base44.entities.Category.update(c.id, { status: c.status === 'inactive' ? 'active' : 'inactive' }); reload(); };
+  const remove = async (id) => { await vault.entities.Category.delete(id); reload(); };
+  const toggleStatus = async (c) => { await vault.entities.Category.update(c.id, { status: c.status === 'inactive' ? 'active' : 'inactive' }); reload(); };
   const updatePercentage = async (c, pct) => {
-    await base44.entities.Category.update(c.id, { percentage: Math.max(0, Math.min(100, Number(pct) || 0)) });
+    await vault.entities.Category.update(c.id, { percentage: Math.max(0, Math.min(100, Number(pct) || 0)) });
     reload();
   };
 
@@ -72,11 +72,11 @@ export default function Categories() {
       const pct = Math.round(100 / cats.length);
       return cats.map(c => ({ ...c, status: 'active', percentage: pct }));
     });
-    await base44.entities.Category.bulkCreate(categories);
+    await vault.entities.Category.bulkCreate(categories);
     reload();
   };
   const seedReserves = async () => {
-    await base44.entities.Category.bulkCreate(DEFAULT_RESERVE_CATEGORIES.map((c) => ({ ...c, status: 'active', percentage: 0 })));
+    await vault.entities.Category.bulkCreate(DEFAULT_RESERVE_CATEGORIES.map((c) => ({ ...c, status: 'active', percentage: 0 })));
     reload();
   };
 

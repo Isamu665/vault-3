@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,9 +51,9 @@ export default function InvestmentDialog({ open, onOpenChange, investment, reser
     delete payload.id;
 
     if (investment?.id) {
-      await base44.entities.Investment.update(investment.id, payload);
+      await vault.entities.Investment.update(investment.id, payload);
     } else {
-      await base44.entities.Investment.create(payload);
+      await vault.entities.Investment.create(payload);
     }
 
     setSaving(false);

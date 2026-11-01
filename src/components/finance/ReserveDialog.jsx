@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,11 +29,11 @@ export default function ReserveDialog({ open, onOpenChange, reserve, onSaved }) 
     delete payload.id;
 
     if (reserve?.id) {
-      await base44.entities.Reserve.update(reserve.id, payload);
+      await vault.entities.Reserve.update(reserve.id, payload);
     } else {
-      const created = await base44.entities.Reserve.create(payload);
+      const created = await vault.entities.Reserve.create(payload);
       // Initialize current_amount to 0 for new reserves
-      await base44.entities.Reserve.update(created.id, { current_amount: 0 });
+      await vault.entities.Reserve.update(created.id, { current_amount: 0 });
     }
 
     setSaving(false);

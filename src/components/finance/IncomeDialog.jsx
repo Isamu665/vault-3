@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,8 +23,8 @@ export default function IncomeDialog({ open, onOpenChange, income, onSaved }) {
     setSaving(true);
     const payload = { ...form, amount: Number(form.amount) };
     delete payload.id;
-    if (income?.id) await base44.entities.Income.update(income.id, payload);
-    else await base44.entities.Income.create(payload);
+    if (income?.id) await vault.entities.Income.update(income.id, payload);
+    else await vault.entities.Income.create(payload);
     setSaving(false);
     onOpenChange(false);
     onSaved();

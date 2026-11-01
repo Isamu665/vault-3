@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X } from 'lucide-react';
-import AssistantChat from './AssistantChat';
+const AssistantChat = lazy(() => import('./AssistantChat'));
 
 export default function FloatingAssistantButton() {
   const [open, setOpen] = useState(false);
@@ -30,7 +30,7 @@ export default function FloatingAssistantButton() {
       </motion.button>
 
       {/* Painel de chat */}
-      <AssistantChat open={open} onClose={() => setOpen(false)} />
+      {open && <Suspense fallback={<p role="status" className="fixed bottom-24 right-5 rounded-xl bg-card border p-4 z-50">Abrindo assistente…</p>}><AssistantChat open={open} onClose={() => setOpen(false)} /></Suspense>}
     </>
   );
 }

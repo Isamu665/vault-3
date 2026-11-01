@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Repeat, Pencil, Trash2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { vault } from '@/api/vaultClient';
 import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import MonthPicker from '@/components/finance/MonthPicker';
@@ -25,7 +25,7 @@ export default function Incomes() {
     .filter((r) => inMonth(r.date, year, month))
     .filter((r) => (r.description + r.category).toLowerCase().includes(q.toLowerCase()));
 
-  const remove = async (id) => { await base44.entities.Income.delete(id); reload(); };
+  const remove = async (id) => { await vault.entities.Income.delete(id); reload(); };
 
   return (
     <div>

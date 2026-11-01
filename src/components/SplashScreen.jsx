@@ -1,33 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const SPLASH_GIF = 'https://media.base44.com/images/public/6a67e3522de5a7c8ffdb36c9/c8b731b38_motiondesigners2d_pindownio_1785203942.gif';
-const SPLASH_DURATION = 3000;
-
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Wallet } from 'lucide-react';
 export default function SplashScreen({ onComplete }) {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(false), SPLASH_DURATION);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <AnimatePresence onExitComplete={onComplete}>
-      {visible && (
-        <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
-        >
-          <img
-            src={SPLASH_GIF}
-            alt="V.A.U.L.T"
-            className="w-full h-full object-contain"
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  useEffect(() => { const timer = setTimeout(onComplete, 700); return () => clearTimeout(timer); }, [onComplete]);
+  return <motion.div initial={{ opacity: 1 }} className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center text-white" role="status" aria-label="Abrindo V.A.U.L.T">
+    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="rounded-3xl bg-indigo-500/20 border border-indigo-400/30 p-6"><Wallet className="w-12 h-12 text-indigo-300" /></motion.div>
+    <p className="mt-6 text-xl tracking-[.4em]">V.A.U.L.T</p><p className="mt-2 text-xs text-slate-400">Seu futuro começa com clareza.</p>
+  </motion.div>;
 }
