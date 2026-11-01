@@ -37,7 +37,7 @@ Abra o endereço terminado em `/vault-3/`. O build comum para hospedagem na raiz
 - Função Gemini autenticada, segredo no servidor, limite de 30 perguntas por usuário por dia UTC e consentimento para enviar totais.
 - Indicadores consultados diretamente do BCB por função de servidor; nenhuma taxa é gerada por IA.
 - Ditado opcional usando reconhecimento de voz do navegador, sem upload público de áudio.
-- Backup/importação JSON com IDs estáveis e preservação de vínculos.
+- Backup/importação JSON compatível com o Base44, prévia, validação, transação atômica, IDs estáveis, vínculos e restauração opcional de preferências.
 - Aplicativo web instalável (PWA), ícones locais e cache apenas dos arquivos da interface.
 
 ## Ativação
@@ -48,7 +48,7 @@ Não foi gerado APK. A entrega escolhida é a web no GitHub Pages, instalável p
 
 ## Dados antigos e portabilidade
 
-O novo banco começa vazio. O aplicativo antigo e os registros no Base44 não foram alterados. Exporte seus dados autorizados e use “Seus dados” para importar o JSON. Consulte [docs/MIGRATION.md](docs/MIGRATION.md). Senhas e sessões antigas não são transferidas; cada usuário deve criar sua conta nova.
+O novo banco começa vazio. O aplicativo antigo e os registros no Base44 não foram alterados. Exporte seus dados autorizados e use “Seus dados” para importar o JSON. Consulte [docs/MIGRATION.md](docs/MIGRATION.md) e o [guia da importação/exportação](docs/DATA-TRANSFER.md). Senhas e sessões antigas não são transferidas; cada usuário deve criar sua conta nova.
 
 Os esquemas antigos estão em `docs/legacy-schema` apenas como referência histórica. Não são usados pelo aplicativo. A regra de orçamento é guardada neste navegador, separada por usuário; não sincroniza entre dispositivos. O chat é temporário e é descartado ao fechar o painel; cada pergunta é independente.
 

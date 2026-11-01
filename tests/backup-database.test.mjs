@@ -1,0 +1,45 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile, readdir } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+test('backup RPC validates all rows, rolls back invalid links and protects identities across accounts', async () => {
+  const db = new PGlite();
+  const alice = '00000000-0000-0000-0000-000000000001', bob = '00000000-0000-0000-0000-000000000002';
+  const reserve = {id:'10000000-0000-0000-0000-000000000001',entity:'Reserve',data:{name:'Emergency'}};
+  const investment = {id:'10000000-0000-0000-0000-000000000002',entity:'Investment',data:{name:'Bond',type:'cdb',reserve_id:reserve.id}};
+  const income = {id:'10000000-0000-0000-0000-000000000003',entity:'Income',data:{description:'Work',amount:10,date:'2026-11-01'}};
+  const run = (rows, user = alice) => db.query('select public.import_vault_backup($1::jsonb,$2::uuid) as result',[JSON.stringify(rows),user]);
+  const count = async () => (await db.query('select count(*)::integer as n from public.vault_records')).rows[0].n;
+  try {
+    await db.exec(`create role anon; create role authenticated; create schema auth;
+      create table auth.users(id uuid primary key);
+      create function auth.uid() returns uuid language sql stable as 'select nullif(current_setting(''request.jwt.claim.sub'', true), '''')::uuid';
+      grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;
+      insert into auth.users values ('${alice}'),('${bob}');`);
+    const dir = new URL('../supabase/migrations/',import.meta.url);
+    for (const file of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(file,dir),'utf8'));
+    await db.exec(`set role authenticated; set request.jwt.claim.sub='${alice}';`);
+    await assert.rejects(run([income,{...investment,data:{...investment.data,reserve_id:reserve.id}}]),/Missing owned link/);
+    assert.equal(await count(),0,'link failure rolls back all inserts');
+    await assert.rejects(run([income,{...reserve,data:{name:'x',user_id:bob}}]),/Unexpected record field/);
+    await assert.rejects(run([{...income,data:{...income.data,date:'2026-02-31'}}]));
+    await assert.rejects(run([{...income,data:{...income.data,amount:'10'}}]),/Invalid number/);
+    await assert.rejects(run([income,income]),/Duplicate/);
+    await assert.rejects(run([income],bob),/Authentication changed/);
+    const result=(await run([investment,reserve,income])).rows[0].result;
+    assert.equal(result.addedTotal,3); assert.equal(result.added.Income,1); assert.equal(result.duplicatesTotal,0);
+    assert.equal((await run([investment,reserve,{...income,data:{...income.data,amount:999}}])).rows[0].result.duplicatesTotal,3);
+    assert.equal((await db.query('select data from public.vault_records where id=$1',[income.id])).rows[0].data.amount,10,'duplicate does not overwrite');
+    await assert.rejects(run([{...reserve,entity:'Income',data:income.data}]),/another entity/);
+    await db.exec(`set request.jwt.claim.sub='${bob}';`);
+    assert.equal(await count(),0);
+    await assert.rejects(run([{...investment,id:'20000000-0000-0000-0000-000000000002'}],bob),/Missing owned link/);
+    await assert.rejects(run([income],bob),/Import ID unavailable/);
+    assert.equal(await count(),0);
+    const own={...income,id:'20000000-0000-0000-0000-000000000003'};
+    assert.equal((await run([own],bob)).rows[0].result.addedTotal,1);
+    await db.exec('reset role; set role anon;');
+    await assert.rejects(run([income]));
+    await assert.rejects(db.query('select * from public.vault_records'));
+  } finally { await db.close(); }
+});
