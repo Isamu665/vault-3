@@ -123,11 +123,10 @@ export default function Bills() {
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2"><Button type="button" variant="ghost" disabled={!!paying} onClick={()=>setPaymentBill(null)}>Cancelar</Button><Button type="submit" disabled={!!paying || categoriesLoading || !!categoriesError || !categoryChoice || (categoryChoice==='new' && !newName.trim())}>{paying?'Salvando…':'Confirmar pagamento e despesa'}</Button></div>
         </form>
       </DialogContent></Dialog>
-      <BillDialog open={open} onOpenChange={setOpen} bill={editing} onSaved={reload} />
+      <BillDialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) setEditing(null); }} bill={editing} onSaved={reload} categories={expenseCategories} categoriesLoading={categoriesLoading} categoriesError={categoriesError} />
       <TransactionDetailDialog item={detailItem} type="bill" open={!!detailItem} onOpenChange={(v) => !v && setDetailItem(null)}
         onEdit={(item) => { setDetailItem(null); setEditing(item); setOpen(true); }}
         onDelete={async (id) => { await remove(id); setDetailItem(null); }} />
     </div>
   );
 }
-
