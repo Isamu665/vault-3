@@ -11,9 +11,12 @@ import { brl } from '@/lib/finance';
 import MessageBubble from './MessageBubble';
 import AssistantActions from './AssistantActions';
 import AccountEvidence from './AccountEvidence';
+import { useAuth } from '@/lib/AuthContext';
+import { consentKey, hasAssistantConsent, saveAssistantConsent } from '@/lib/assistant-consent.mjs';
 
 const QUESTIONS = ['Analise meus gastos fixos e essenciais de outubro de 2026.', 'Quais contas ainda estão pendentes?', 'Quanto falta para minhas metas?'];
 export default function AssistantChat({ open, onClose }) {
+  const { user } = useAuth();
   // Mount only while opened: requests and chart layout don't run behind a closed panel.
   return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}>
     <DialogContent className="max-w-3xl w-[calc(100%_-_1rem)] h-[min(90dvh,820px)] p-0 overflow-hidden rounded-3xl flex flex-col gap-0">
@@ -21,11 +24,11 @@ export default function AssistantChat({ open, onClose }) {
         <div className="flex items-center gap-3"><div className="p-3 bg-indigo-600 text-white rounded-2xl"><Sparkles className="w-5 h-5" /></div>
           <div><DialogTitle>V.A.U.L.T Insights</DialogTitle><DialogDescription>Clareza para decidir o seu próximo passo.</DialogDescription></div></div>
       </DialogHeader>
-      {open && <AssistantContent onClose={onClose} />}
+      {open && <AssistantContent key={user?.id || 'anonymous'} userId={user?.id} onClose={onClose} />}
     </DialogContent>
   </Dialog>;
 }
-function AssistantContent({ onClose }) {
+function AssistantContent({ onClose, userId }) {
   const { items: incomes, loading: loadingIn, error: incomeError } = useCollection('Income');
   const { items: expenses, loading: loadingOut, error: expenseError } = useCollection('Expense');
   const { items: bills, loading: loadingBills, error: billsError } = useCollection('Bill');
@@ -34,7 +37,26 @@ function AssistantContent({ onClose }) {
   const snapshot = useMemo(() => financialSnapshot(incomes, expenses, bills), [incomes, expenses, bills]);
   const [view, setView] = useState('overview'), [messages, setMessages] = useState([]);
   const [input, setInput] = useState(''), [sending, setSending] = useState(false), [error, setError] = useState('');
-  const [share, setShare] = useState(false);
+  const readConsent = () => { try { return hasAssistantConsent(window.localStorage, userId); } catch { return false; } };
+  const [share, setShare] = useState(readConsent);
+  const changeConsent = granted => {
+    try {
+      saveAssistantConsent(window.localStorage, userId, granted);
+      setShare(granted); setError('');
+      if (!granted) { setMessages([]); setEvidence({ rows: [], period: null }); }
+    } catch { setShare(false); setError('Não foi possível salvar a permissão. Verifique se o navegador permite armazenamento local e tente novamente.'); }
+  };
+  useEffect(() => {
+    const refresh = event => {
+      if (event.type === 'focus' || event.key === null || event.key === consentKey(userId)) {
+        const granted = readConsent(); setShare(granted);
+        if (!granted) { controller.current?.abort(); setMessages([]); setEvidence({ rows: [], period: null }); }
+      }
+    };
+    window.addEventListener('storage', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
+  }, [userId]);
   const [evidence,setEvidence]=useState({rows:[],period:null});
   const [actionRefresh, setActionRefresh] = useState(0);
   const [recording, setRecording] = useState(false);
@@ -62,12 +84,13 @@ function AssistantContent({ onClose }) {
   };
   const send = async text => {
     if (!text.trim() || sending) return;
+    if (!share || !readConsent()) { setShare(false); setError('Autorize o acesso aos dados da sua conta antes de usar o assistente.'); return; }
     setView('chat'); setError(''); setInput(''); setSending(true);
     setMessages(previous => [...previous, { role: 'user', content: text.trim() }]);
     controller.current = new AbortController();
     try {
       const result = await requireBackend().functions.invoke('assistant', {
-        body: { message: text.trim(), shareAccount: share, history: share ? messages.slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1200)})) : [] },
+        body: { message: text.trim(), shareAccount: true, history: messages.slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1200)})) },
         signal: controller.current.signal,
       });
       if (result.error) {
@@ -115,7 +138,7 @@ function AssistantContent({ onClose }) {
         </>}
         <div className="grid grid-cols-2 gap-2"><Link onClick={onClose} to="/despesas" className="rounded-xl border p-3 text-sm flex justify-between">Registrar despesa<ArrowUpRight className="w-4 h-4" /></Link><Link onClick={onClose} to="/metas" className="rounded-xl border p-3 text-sm flex justify-between">Revisar metas<ArrowUpRight className="w-4 h-4" /></Link></div>
       </div> : <div className="flex flex-col gap-4">
-        {!messages.length && <div className="py-6"><Sparkles className="w-8 h-8 text-indigo-400 mb-3" /><h2 className="text-xl font-semibold">Vamos transformar números em próximos passos.</h2><p className="text-sm text-muted-foreground mt-2">O histórico recente desta conversa ajuda a interpretar suas perguntas. Ao autorizar dados, o servidor consulta sua conta. A conversa é temporária; o histórico das ações permanece salvo.</p><div className="flex flex-wrap gap-2 mt-5">{QUESTIONS.map(q => <button disabled={sending} key={q} className="rounded-xl border px-3 py-2 text-xs text-left hover:bg-muted" onClick={() => send(q)}>{q}</button>)}</div></div>}
+        {!messages.length && <div className="py-6"><Sparkles className="w-8 h-8 text-indigo-400 mb-3" /><h2 className="text-xl font-semibold">Vamos transformar números em próximos passos.</h2><p className="text-sm text-muted-foreground mt-2">O histórico recente desta conversa ajuda a interpretar suas perguntas. Com sua permissão, o servidor consulta sua conta a cada pergunta. A conversa é temporária; o histórico das ações permanece salvo.</p><div className="flex flex-wrap gap-2 mt-5">{QUESTIONS.map(q => <button disabled={sending || !share} key={q} className="rounded-xl border px-3 py-2 text-xs text-left hover:bg-muted disabled:opacity-50" onClick={() => send(q)}>{q}</button>)}</div></div>}
         {messages.map((message,index) => <div key={index}><MessageBubble message={message} />{message.role === 'assistant' && <button className="mt-1 text-xs text-muted-foreground flex gap-1 items-center" onClick={() => navigator.clipboard.writeText(message.content).catch(() => setError('Não foi possível copiar. Selecione o texto manualmente.'))}><Copy className="w-3 h-3" />Copiar</button>}</div>)}
         {sending && <p role="status" className="text-sm text-muted-foreground flex gap-2"><Loader2 className="w-4 h-4 animate-spin" />Preparando sua resposta…</p>}
         <AccountEvidence analysis={evidence} />
@@ -125,13 +148,12 @@ function AssistantContent({ onClose }) {
       {error && <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     </div>
     <form className="border-t p-4 bg-muted/20" onSubmit={e => { e.preventDefault(); send(input); }}>
-      <label className="flex items-start gap-2 text-xs text-muted-foreground mb-3"><input type="checkbox" checked={share} disabled={sending} onChange={e => setShare(e.target.checked)} />
-        <span>Autorizar esta pergunta a consultar minha conta e enviar ao Google/Gemini os registros financeiros, descrições, notas, valores, categorias, datas e identificadores necessários. Preferências do navegador, credenciais e sessões não são enviadas.</span></label>
+      {share ? <div className="flex items-center justify-between gap-2 text-xs mb-3"><span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400"><ShieldCheck className="w-4 h-4" />Permissão concedida e salva neste navegador</span><button type="button" disabled={sending} className="underline text-muted-foreground shrink-0" onClick={() => changeConsent(false)}>Revogar permissão</button></div> : <label className="flex items-start gap-2 text-xs text-muted-foreground mb-3"><input type="checkbox" checked={false} disabled={sending} onChange={e => changeConsent(e.target.checked)} />
+        <span>Autorizo o assistente a consultar minha conta e enviar ao Google/Gemini os registros financeiros, descrições, notas, valores, categorias, datas e identificadores necessários a cada pergunta. Esta permissão é necessária para conversar e fica salva para meu usuário neste navegador até eu revogá-la. Preferências do navegador, credenciais e sessões não são enviadas.</span></label>}
       <div className="flex gap-2"><Button type="button" variant="ghost" size="icon" aria-label={recording ? 'Encerrar ditado' : 'Ditar com o serviço de voz do navegador'} aria-pressed={recording} title={SpeechRecognition ? 'O áudio pode ser processado pelo provedor do navegador' : 'Ditado não disponível neste navegador'} disabled={sending || !SpeechRecognition} onClick={dictate}>{recording ? <MicOff className="w-4 h-4 text-rose-500" /> : <Mic className="w-4 h-4" />}</Button><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} disabled={sending || recording} placeholder={recording ? 'Ouvindo…' : 'O que você quer entender melhor?'} className="flex-1 min-w-0 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
-        <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || recording || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
+        <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || recording || !share || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
       <p className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2"><ShieldCheck className="w-3 h-3" />Consultas usam os dados autorizados da sua conta. Alterações exigem sua confirmação na prévia. Nenhuma movimentação bancária.</p>
       {SpeechRecognition && <p className="text-[10px] text-muted-foreground mt-1">Ditado opcional: o áudio pode ser processado pelo provedor do navegador. Não há upload de gravação pública.</p>}
     </form>
   </>;
 }
-

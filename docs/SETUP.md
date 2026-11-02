@@ -66,7 +66,7 @@ As funções já estão implantadas; a leitura do segredo acontece a cada requis
 
 O modelo pode ser trocado por `GEMINI_MODEL` sem recompilar a interface. Confira a disponibilidade e os custos na sua conta Google. A função limita pedidos a 30 por usuário por dia UTC; falhas do provedor após consumir cota também contam.
 
-A pergunta é enviada ao Google quando o usuário pressiona Enviar. Totais do mês, contas pendentes e totais de seis meses só são enviados quando o usuário marca a opção do painel. Descrições, nomes de lançamentos e categorias não são enviados automaticamente. Tudo que o usuário digitar na própria pergunta faz parte da mensagem enviada.
+A pergunta é enviada ao Google quando o usuário pressiona Enviar. No primeiro uso, é necessário autorizar a consulta à conta e o envio dos registros financeiros necessários ao Google/Gemini, incluindo descrições, notas, valores, categorias, datas e identificadores. A permissão fica salva separadamente para cada usuário neste navegador e pode ser revogada no rodapé do assistente. Credenciais, sessões e preferências do navegador não são enviadas. A permissão é conferida antes de cada pergunta e não é incluída em backups. Tudo que o usuário digitar na própria pergunta faz parte da mensagem enviada.
 
 Se publicar em outro domínio, adicione a origem em `ALLOWED_ORIGINS` nos segredos do servidor.
 
@@ -94,4 +94,3 @@ Esta entrega é PWA, não APK: não há assinatura Android nem publicação na P
 Faça cadastro e recuperação por e-mail, login Google e teste com duas contas. Cada conta deve enxergar apenas os próprios lançamentos. Teste criação/edição/exclusão, importação, relatórios, reservas/investimentos e respostas da IA com e sem compartilhamento.
 
 O painel de assistente foi revisado com dados fictícios. Não foram criadas contas de teste reais nem enviados dados financeiros à IA durante a preparação.
-
