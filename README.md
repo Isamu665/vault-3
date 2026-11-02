@@ -32,6 +32,7 @@ Abra o endereço terminado em `/vault-3/`. O build comum para hospedagem na raiz
 - Cadastro, confirmação de e-mail, recuperação de senha e login Google por Supabase.
 - Dados por conta, protegidos por RLS no Postgres, sem dependência de filtros do navegador para segurança.
 - Receitas, despesas, categorias, contas, dívidas, metas, reservas e investimentos usando o novo banco.
+- Receitas recorrentes com previsão mensal, confirmação de recebimento e proteção contra duplicação; veja [docs/RECURRING-INCOME.md](docs/RECURRING-INCOME.md).
 - Atualizações ao vivo e cache de consultas separado por usuário.
 - Assistente com panorama, gráficos mensais, ranking por categoria, Markdown, exportação/cópia e links para ações.
 - Função Gemini autenticada, segredo no servidor, limite de 30 perguntas por usuário por dia UTC e consentimento para enviar totais.

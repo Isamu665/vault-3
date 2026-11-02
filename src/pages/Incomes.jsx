@@ -6,6 +6,7 @@ import PageHeader from '@/components/finance/PageHeader';
 import MonthPicker from '@/components/finance/MonthPicker';
 import EmptyState from '@/components/finance/EmptyState';
 import IncomeDialog from '@/components/finance/IncomeDialog';
+import RecurringIncomes from '@/components/finance/RecurringIncomes';
 import TransactionDetailDialog from '@/components/finance/TransactionDetailDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,8 @@ export default function Incomes() {
       </PageHeader>
 
       <Input placeholder="Pesquisar receitas..." value={q} onChange={(e) => setQ(e.target.value)} className="mb-4 max-w-sm rounded-xl" />
+
+      <RecurringIncomes incomes={items} year={year} month={month} onSaved={reload} />
 
       {list.length === 0 ? <EmptyState text="Nenhuma receita neste mês." /> : (
         <div className="space-y-2">

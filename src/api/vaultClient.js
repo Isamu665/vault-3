@@ -49,6 +49,10 @@ function entityClient(entity) {
       changed(entity); return fromRecord(row);
     },
     async delete(id) {
+      if (entity === 'Income') {
+        unwrap(await requireBackend().rpc('delete_income_with_recurrence', { income_id: id }));
+        changed(entity); return;
+      }
       unwrap(await requireBackend().from('vault_records').delete().eq('user_id', await owner()).eq('entity', entity).eq('id', id));
       changed(entity);
     },
@@ -61,10 +65,17 @@ function entityClient(entity) {
 }
 
 export const vault = { entities: Object.fromEntries(ENTITIES.map(name => [name, entityClient(name)])),
+  async confirmRecurringIncome(sourceId, dueDate, amount, receivedDate, expectedSchedule) {
+    await owner();
+    const result = unwrap(await requireBackend().rpc('confirm_recurring_income', {
+      source_id: sourceId, due_date: dueDate, received_amount: amount,
+      received_date: receivedDate, expected_schedule: expectedSchedule,
+    }));
+    changed('Income'); return result;
+  },
   async payBill(id,payment) {
     await owner();
     const result=unwrap(await requireBackend().rpc('pay_bill',{bill_id:id,payment}));
     changed('Bill'); changed('Expense'); changed('Category'); return result;
   },
 };
-

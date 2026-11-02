@@ -15,13 +15,14 @@ export const ENTITY_SPECS = [
   {
     name: 'Income',
     label: 'Receitas',
-    fields: ['description', 'category', 'amount', 'date', 'recurring', 'notes'],
+    fields: ['description', 'category', 'amount', 'date', 'recurring', 'notes', 'income_schedule', 'recurrence_source', 'recurrence_due'],
     required: ['description', 'amount', 'date'],
     numbers: ['amount'],
     booleans: ['recurring'],
-    dates: ['date'],
+    dates: ['date', 'recurrence_due'],
     enums: {},
-    links: {},
+    links: { recurrence_source: 'Income' },
+    json: ['income_schedule'],
   },
   {
     name: 'Expense',
@@ -204,4 +205,3 @@ export const IMPORT_ORDER = [
 ];
 
 // Entidade usada como identificação estável de deduplicação (por usuário).
-

@@ -1,5 +1,6 @@
 import { ENTITY_SPECS, SPEC_BY_NAME, MAX_BACKUP_BYTES } from './schema.mjs';
 import { normalizePreferences } from './preferences.mjs';
+import { validIncomeSchedule } from '../income-recurrence.mjs';
 export const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export function validDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$/.test(value)) return false;
@@ -35,6 +36,8 @@ export function validateBackup(input) {
         if (typeof record.id !== 'string' || !record.id.trim() || record.id.length > 256 || record.id !== record.id.trim()) fail(at + ': ID inválido.');
         if (seen.has(record.id)) fail(at + ': ID repetido.'); seen.add(record.id);
         if (record.legacy_id !== undefined && (typeof record.legacy_id !== 'string' || !record.legacy_id.trim() || record.legacy_id.length > 256)) fail(at + ': identificação de origem inválida.');
+        if (spec.name === 'Income' && record.income_schedule != null && !validIncomeSchedule(record.income_schedule)) fail(at + ': recorrência inválida.');
+        if (spec.name === 'Income' && !!record.recurrence_source !== !!record.recurrence_due) fail(at + ': origem e data da recorrência devem estar juntas.');
         for (const field of spec.required) if (record[field] == null || record[field] === '' || typeof record[field] === 'string' && !record[field].trim()) fail(at + ': falta ' + field + '.');
         for (const field of spec.fields) {
           const value = record[field]; if (value == null) continue;
