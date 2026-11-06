@@ -147,13 +147,23 @@ function AssistantContent({ onClose, userId }) {
       </div>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     </div>
-    <form className="border-t p-4 bg-muted/20" onSubmit={e => { e.preventDefault(); send(input); }}>
-      {share ? <div className="flex items-center justify-between gap-2 text-xs mb-3"><span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400"><ShieldCheck className="w-4 h-4" />Permissão concedida e salva neste navegador</span><button type="button" disabled={sending} className="underline text-muted-foreground shrink-0" onClick={() => changeConsent(false)}>Revogar permissão</button></div> : <label className="flex items-start gap-2 text-xs text-muted-foreground mb-3"><input type="checkbox" checked={false} disabled={sending} onChange={e => changeConsent(e.target.checked)} />
-        <span>Autorizo o assistente a consultar minha conta e enviar ao Google/Gemini os registros financeiros, descrições, notas, valores, categorias, datas e identificadores necessários a cada pergunta. Esta permissão é necessária para conversar e fica salva para meu usuário neste navegador até eu revogá-la. Preferências do navegador, credenciais e sessões não são enviadas.</span></label>}
+    {view === 'chat' && <form className="border-t p-4 bg-muted/20" onSubmit={e => { e.preventDefault(); send(input); }}>
+      {share ? (
+        <details className="mb-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Privacidade do assistente</summary>
+          <button type="button" disabled={sending} className="mt-2 underline" onClick={() => changeConsent(false)}>Revogar acesso aos dados</button>
+        </details>
+      ) : (
+        <section className="mb-3 rounded-xl border bg-background p-3 text-xs">
+          <p className="font-medium">Ativar a conversa com dados da conta</p>
+          <p className="mt-1 text-muted-foreground">Ao ativar, suas perguntas e os registros financeiros necessários à resposta são enviados ao Google Gemini. Isso pode incluir descrições, notas, valores, categorias, datas e identificadores. A autorização fica salva neste navegador e pode ser revogada em Privacidade do assistente.</p>
+          <Button type="button" size="sm" className="mt-2" disabled={sending} onClick={() => changeConsent(true)}>Autorizar e ativar conversa</Button>
+        </section>
+      )}
       <div className="flex gap-2"><Button type="button" variant="ghost" size="icon" aria-label={recording ? 'Encerrar ditado' : 'Ditar com o serviço de voz do navegador'} aria-pressed={recording} title={SpeechRecognition ? 'O áudio pode ser processado pelo provedor do navegador' : 'Ditado não disponível neste navegador'} disabled={sending || !SpeechRecognition} onClick={dictate}>{recording ? <MicOff className="w-4 h-4 text-rose-500" /> : <Mic className="w-4 h-4" />}</Button><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} disabled={sending || recording} placeholder={recording ? 'Ouvindo…' : 'O que você quer entender melhor?'} className="flex-1 min-w-0 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
         <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || recording || !share || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
       <p className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2"><ShieldCheck className="w-3 h-3" />Consultas usam os dados autorizados da sua conta. Alterações exigem sua confirmação na prévia. Nenhuma movimentação bancária.</p>
       {SpeechRecognition && <p className="text-[10px] text-muted-foreground mt-1">Ditado opcional: o áudio pode ser processado pelo provedor do navegador. Não há upload de gravação pública.</p>}
-    </form>
+    </form>}
   </>;
 }

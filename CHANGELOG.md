@@ -1,5 +1,9 @@
 # Notas de atualização do V.A.U.L.T.
 
+## Em preparação
+
+- A autorização de compartilhamento com o Gemini aparece ao ativar a conversa. O Panorama abre sem esse aviso, e o acesso pode ser revogado em Privacidade do assistente.
+
 ## 6 de novembro de 2026
 
 - Ao renomear uma categoria de despesa, o novo nome também aparece nas despesas e contas já vinculadas.
