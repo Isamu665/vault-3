@@ -14,3 +14,4 @@ Read README.md and docs/SETUP.md before changing backend configuration.
 - Do not publish or alter the legacy production app.
 
 - For every user-facing delivery, update CHANGELOG.md in Portuguese under Em preparação. Move the notes to a dated section only after the release is verified. Keep credentials and private data out of the notes.
+- After verifying each user-facing release on the live site, update the README section “Últimas atualizações” in Portuguese with the release date and a short summary. Keep the link to the complete CHANGELOG.md and update the README and changelog together.
