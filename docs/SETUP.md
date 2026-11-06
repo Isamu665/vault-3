@@ -81,7 +81,9 @@ O repositório permanece privado. Antes de publicar, abra [Settings → Pages](h
 
 URL e chave pública do Supabase estão no workflow, com possibilidade de sobrescrever pelas variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. Isso não expõe uma chave administrativa; os dados são protegidos pelas regras do banco.
 
-Não há publicação automática de funções Supabase pelo GitHub: alterações de backend precisam de implantação separada. O workflow do Pages verifica e publica somente a interface.
+Se o Pages estiver configurado para publicar da branch `vault-pages-release`, um merge em `main` só gera o artefato. Publique o artefato verificado na branch de release e confira `/vault-3/version.json` para identificar o commit de origem. Para voltar de versão, publique novamente o último artefato validado e confira a compatibilidade com as migrações. Atualize o CHANGELOG após confirmar a versão no site.
+
+Não há publicação automática de funções Supabase pelo GitHub. Para a entrega de integridade financeira, aplique a migração em homologação, teste baixa, estorno, movimentações e importação e valide a função `assistant`. Na publicação, aplique a migração e implante a função antes da interface que chama as novas operações. O workflow do Pages verifica e publica somente a interface.
 
 ## 6. Instalar no celular
 

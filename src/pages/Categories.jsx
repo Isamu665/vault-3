@@ -23,6 +23,8 @@ export default function Categories() {
   const { items, reload } = useCollection('Category', 'name');
   const [form, setForm] = useState({ name: '', type: 'despesa', classification: 'necessidade', percentage: '', color: COLORS[0], status: 'active' });
   const [editing, setEditing] = useState(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -38,7 +40,8 @@ export default function Categories() {
   };
 
   const save = async () => {
-    if (!form.name.trim()) return;
+    if (saving || !form.name.trim()) return;
+    setError('');
     const payload = {
       name: form.name.trim(),
       type: form.type,
@@ -47,14 +50,38 @@ export default function Categories() {
       color: form.color,
       status: form.status,
     };
-    if (editing) await vault.entities.Category.update(editing.id, payload);
-    else await vault.entities.Category.create(payload);
+    const normalized = payload.name.toLocaleLowerCase('pt-BR');
+    const unchanged = editing?.name === payload.name && editing?.type === payload.type;
+    if (!unchanged && items.some(c => c.id !== editing?.id && (c.type || 'despesa') === payload.type &&
+        c.name?.trim().toLocaleLowerCase('pt-BR') === normalized)) {
+      setError('Já existe uma categoria desse tipo com esse nome.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editing) await vault.entities.Category.update(editing.id, payload);
+      else await vault.entities.Category.create(payload);
+    } catch (error) {
+      setError(error.message || 'Não foi possível salvar a categoria.');
+      return;
+    } finally {
+      setSaving(false);
+    }
     setForm({ name: '', type: 'despesa', classification: 'necessidade', percentage: '', color: COLORS[0], status: 'active' });
     setEditing(null);
     reload();
   };
 
-  const remove = async (id) => { await vault.entities.Category.delete(id); reload(); };
+  const remove = async (id) => {
+    if (!window.confirm('Excluir esta categoria? Para preservá-la no histórico, use o controle de arquivamento.')) return;
+    setError('');
+    try {
+      await vault.entities.Category.delete(id);
+      reload();
+    } catch (error) {
+      setError(error.message || 'Não foi possível excluir a categoria.');
+    }
+  };
   const toggleStatus = async (c) => { await vault.entities.Category.update(c.id, { status: c.status === 'inactive' ? 'active' : 'inactive' }); reload(); };
   const updatePercentage = async (c, pct) => {
     await vault.entities.Category.update(c.id, { percentage: Math.max(0, Math.min(100, Number(pct) || 0)) });
@@ -85,6 +112,7 @@ export default function Categories() {
 
   return (
     <div>
+      {error && <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>}
       <PageHeader title="Categorias" subtitle="Organize por tipo e classificação 50/30/20">
         <Button variant="outline" className="rounded-full gap-2" onClick={seedExpenses}><Sparkles className="w-4 h-4" /> Despesas padrão</Button>
         <Button variant="outline" className="rounded-full gap-2" onClick={seedReserves}><Sparkles className="w-4 h-4" /> Reservas padrão</Button>
@@ -163,7 +191,7 @@ export default function Categories() {
           </div>
         </div>
         <div className="flex justify-end mt-4">
-          <Button className="rounded-full gap-2" onClick={save}>
+          <Button className="rounded-full gap-2" onClick={save} disabled={saving}>
             <Plus className="w-4 h-4" /> {editing ? 'Salvar edição' : 'Adicionar'}
           </Button>
         </div>
@@ -186,9 +214,9 @@ export default function Categories() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Switch checked={c.status !== 'inactive'} onCheckedChange={() => toggleStatus(c)} />
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => remove(c.id)}><Trash2 className="w-4 h-4" /></Button>
+                  <Switch aria-label={c.status === 'inactive' ? 'Reativar categoria' : 'Arquivar categoria'} checked={c.status !== 'inactive'} onCheckedChange={() => toggleStatus(c)} />
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Editar categoria" onClick={() => startEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" aria-label="Excluir categoria" onClick={() => remove(c.id)}><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
               {c.type === 'despesa' && (

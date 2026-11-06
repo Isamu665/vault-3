@@ -1,12 +1,12 @@
 import React from 'react';
 import ChartReveal from '@/components/finance/ChartReveal';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { brl, MONTHS_SHORT } from '@/lib/finance';
+import { brl, MONTHS_SHORT, localDate } from '@/lib/finance';
 import { patrimonyAccumulated } from '@/lib/patrimony';
 
 export default function BalanceLineChart({ reserveTxs = [], investmentTxs = [], investments = [], year }) {
   const data = MONTHS_SHORT.map((m, i) => {
-    const endOfMonth = new Date(year, i + 1, 0).toISOString().slice(0, 10);
+    const endOfMonth = localDate(new Date(year, i + 1, 0));
     return { mes: m, Patrimônio: patrimonyAccumulated(reserveTxs, investmentTxs, investments, endOfMonth) };
   });
   return (

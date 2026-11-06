@@ -1,3 +1,4 @@
+import { localDate } from '@/lib/finance';
 import React, { useState, useEffect } from 'react';
 import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -6,15 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
-const blank = {
-  creditor: '', start_date: new Date().toISOString().slice(0, 10), original_amount: '',
+const blank = () => ({
+  creditor: '', start_date: localDate(), original_amount: '',
   installment_amount: '', installments_total: '', installment_current: 0, interest_rate: '', cet: '', reason: '',
-};
+});
 
 export default function DebtDialog({ open, onOpenChange, debt, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setForm(debt ? { ...blank, ...debt } : blank); }, [debt, open]);
+  useEffect(() => { setForm(debt ? { ...blank(), ...debt } : blank()); }, [debt, open]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {

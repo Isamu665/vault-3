@@ -26,7 +26,7 @@ export function accountContext(records) {
   for(const rows of Object.values(entities)) for(const row of rows) for(const field of ['user_id','created_by','created_by_id','access_token','refresh_token','legacy_id']) delete row[field];
   return {entities,monthly,definitions:{fixed:'Expense.recurring=true; ausência não prova que é variável',essential:'need_type=necessidade ou classificação inequívoca da categoria; não inferir por nome',bills:'Contas previstas separadas das despesas realizadas; não somar ambas sem conciliação',transfers:'Aportes vinculados excluídos das despesas comuns',unknown:'Não inventar classificações nem tratar dados ausentes como confirmação'}};
 }
-export const ACTION_FIELDS = { Income:['description','amount','date','category','recurring','notes'],Expense:['description','amount','date','category','recurring','need_type','payment_method','notes'],Bill:['description','amount','due_date','status','category'],Goal:['name','target_amount','current_amount','deadline','category','where'] };
+export const ACTION_FIELDS = { Income:['description','amount','date','category','recurring','notes'],Expense:['description','amount','date','category','recurring','need_type','payment_method','notes'],Bill:['description','amount','due_date','category'],Goal:['name','target_amount','current_amount','deadline','category','where'] };
 export function validateProposal(proposal, records) {
   if (!proposal || !['create','update'].includes(proposal.operation) || !Object.hasOwn(ACTION_FIELDS,proposal.entity)) throw Error('Ação não suportada.');
   if (!proposal.data || typeof proposal.data!=='object' || Array.isArray(proposal.data) || !Object.keys(proposal.data).length) throw Error('Ação sem campos.');

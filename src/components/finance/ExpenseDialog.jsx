@@ -1,3 +1,4 @@
+import { localDate } from '@/lib/finance';
 import React, { useState, useEffect } from 'react';
 import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -8,11 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const blank = {
-  description: '', category: '', amount: '', date: new Date().toISOString().slice(0, 10),
+const blank = () => ({
+  description: '', category: '', amount: '', date: localDate(),
   payment_method: 'pix', need_type: 'necessidade', recurring: false, installment: false,
   installments_total: '', installment_current: '', notes: '',
-};
+});
 const METHODS = ['dinheiro', 'pix', 'débito', 'crédito', 'boleto', 'transferência'];
 const NEEDS = [
   { value: 'necessidade', label: 'Necessidade' },
@@ -25,7 +26,7 @@ export default function ExpenseDialog({ open, onOpenChange, expense, categories,
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setForm(expense ? { ...blank, ...expense } : { ...blank, category: categories[0]?.name || '' });
+    setForm(expense ? { ...blank(), ...expense } : { ...blank(), category: categories[0]?.name || '' });
   }, [expense, open, categories]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));

@@ -1,0 +1,12 @@
+# Notas de atualização do V.A.U.L.T.
+
+## Em preparação
+
+- A confirmação de pagamento usa a data preenchida no formulário. Agora há uma ação de estorno que reabre a conta e remove a despesa vinculada.
+- Movimentações e saldos de reservas e investimentos passam a ser gravados juntos. Saques acima do saldo disponível são recusados.
+- O backup usa o mesmo formato para medir o tamanho e baixar o arquivo e inclui os vínculos dos pagamentos disponíveis.
+- O filtro de categoria afeta o detalhamento dos relatórios. Os totais gerais continuam representando todo o período.
+- O painel informa quando ainda não há meta mensal. Melhoramos nomes de controles, mensagens de acesso e confirmações de exclusão.
+- Categorias em uso podem ser arquivadas para preservar o histórico.
+
+Estas mudanças estão em revisão. A seção será datada após a versão chegar ao site.

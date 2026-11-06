@@ -21,7 +21,7 @@ export default function DataSettings() {
       await checkAccount(user.id);
       const file = await buildBackup(entity => vault.entities[entity].list(), user.id, readPreferences(localStorage, user.id), p => setProgress(p.label + ' · ' + p.done + '/' + p.total));
       await checkAccount(user.id);
-      const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
+      const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'vault-backup-' + new Date().toISOString().slice(0,10) + '.json';
       document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
       setNotice(Object.values(file.entities).reduce((n, rows) => n + rows.length, 0) + ' registros exportados. Guarde o arquivo em local privado.');

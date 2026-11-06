@@ -13,8 +13,9 @@ function unwrap(result) { if (result.error) throw result.error; return result.da
 
 function entityClient(entity) {
   const query = (userId) => requireBackend().from('vault_records').select('*').eq('user_id', userId).eq('entity', entity);
-  const list = async (sort = '-created_date', limit = Infinity, filter = {}) => {
+  const list = async (sort = '-created_date', limit = Infinity, filter = {}, expectedUserId = undefined) => {
     const userId = await owner();
+    if (expectedUserId && userId !== expectedUserId) throw new Error('A sessão mudou.');
     let rows = [], offset = 0;
     // Page through every record before sorting: financial totals must not stop at 1000.
     while (true) {
@@ -72,6 +73,27 @@ export const vault = { entities: Object.fromEntries(ENTITIES.map(name => [name, 
       received_date: receivedDate, expected_schedule: expectedSchedule,
     }));
     changed('Income'); return result;
+  },
+  async recordPatrimonyMovement(assetId, movementId, movement, { amount, date, notes }) {
+    await owner();
+    unwrap(await requireBackend().rpc('record_patrimony_movement', {
+      asset_id: assetId, movement_id: movementId, movement, amount, movement_date: date, notes,
+    }));
+    const entities = movement === 'deposit' || movement === 'withdrawal'
+      ? ['Reserve', 'ReserveTransaction']
+      : ['Investment', movement === 'valuation' ? 'InvestmentUpdate' : 'InvestmentTransaction'];
+    entities.forEach(changed);
+  },
+  async deletePatrimonyAsset(id, entity) {
+    await owner();
+    unwrap(await requireBackend().rpc('delete_patrimony_asset', { asset_id: id, asset_entity: entity }));
+    ['Reserve', 'ReserveTransaction', 'Investment', 'InvestmentTransaction', 'InvestmentUpdate', 'Expense'].forEach(changed);
+  },
+  async reverseBillPayment(id) {
+    await owner();
+    unwrap(await requireBackend().rpc('reverse_bill_payment', { bill_id: id }));
+    changed('Bill');
+    changed('Expense');
   },
   async payBill(id,payment) {
     await owner();

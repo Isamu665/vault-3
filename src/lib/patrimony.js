@@ -1,4 +1,4 @@
-import { inMonth, sum } from './finance';
+import { civilDate, localDate, inMonth, sum } from './finance';
 
 export function monthDeposits(reserveTxs, year, month) {
   return reserveTxs.filter((tx) => tx.type === 'deposit' && inMonth(tx.date, year, month));
@@ -21,10 +21,9 @@ export function economiaForMonth(reserveTxs, investmentTxs, investments, year, m
 }
 
 export function patrimonyAccumulated(reserveTxs, investmentTxs, investments, upToDate) {
-  const date = upToDate ? new Date(upToDate) : new Date();
-  date.setHours(23, 59, 59, 999);
+  const date = upToDate ? civilDate(upToDate) : localDate();
   const reserveBalance = reserveTxs
-    .filter((tx) => new Date(tx.date) <= date)
+    .filter((tx) => Boolean(civilDate(tx.date)) && civilDate(tx.date) <= date)
     .reduce((s, tx) => s + (tx.type === 'deposit' ? Number(tx.amount) || 0 : -(Number(tx.amount) || 0)), 0);
 
   // Exclude investments linked to a reserve — their value is already counted in that reserve's balance
@@ -32,7 +31,7 @@ export function patrimonyAccumulated(reserveTxs, investmentTxs, investments, upT
     (investments || []).filter((inv) => inv.reserve_id).map((inv) => inv.id)
   );
   const investmentBalance = investmentTxs
-    .filter((tx) => new Date(tx.date) <= date && !linkedInvestmentIds.has(tx.investment_id))
+    .filter((tx) => Boolean(civilDate(tx.date)) && civilDate(tx.date) <= date && !linkedInvestmentIds.has(tx.investment_id))
     .reduce((s, tx) => s + (Number(tx.amount) || 0), 0);
   return reserveBalance + investmentBalance;
 }
@@ -68,7 +67,8 @@ export function patrimonyBreakdown(reserveTxs, investmentTxs, reserves, investme
 }
 
 export function inRange(dateStr, from, to) {
-  return dateStr >= from && dateStr <= to;
+  const date = civilDate(dateStr);
+  return Boolean(date && from && to && date >= from && date <= to);
 }
 
 export function economiaForRange(reserveTxs, investmentTxs, investments, from, to) {

@@ -47,25 +47,26 @@ export default function Patrimonio() {
 
   const totalReserved = reserves.reduce((a, r) => a + reserveBalance(reserveTxs, r.id), 0);
   const totalApplied = investments.reduce((a, i) => a + investmentTotal(investmentTxs, i.id), 0);
-  const totalCurrent = investments.reduce((a, i) => a + (i.current_amount || investmentTotal(investmentTxs, i.id)), 0);
+  const totalCurrent = investments.reduce((a, i) => a + (i.current_amount ?? investmentTotal(investmentTxs, i.id)), 0);
   const totalProfit = totalCurrent - totalApplied;
   const profitability = totalApplied ? (totalProfit / totalApplied) * 100 : 0;
 
-  const deleteReserve = async (id) => {
-    const linkedTxs = await vault.entities.ReserveTransaction.filter({ reserve_id: id });
-    for (const tx of linkedTxs) await vault.entities.ReserveTransaction.delete(tx.id);
-    const linkedExpenses = await vault.entities.Expense.filter({ reserve_id: id });
-    for (const e of linkedExpenses) await vault.entities.Expense.delete(e.id);
-    await vault.entities.Reserve.delete(id);
-    reloadAll();
-  };
-  const deleteInvestment = async (id) => {
-    const linkedTxs = await vault.entities.InvestmentTransaction.filter({ investment_id: id });
-    for (const tx of linkedTxs) await vault.entities.InvestmentTransaction.delete(tx.id);
-    const linkedExpenses = await vault.entities.Expense.filter({ investment_id: id });
-    for (const e of linkedExpenses) await vault.entities.Expense.delete(e.id);
-    await vault.entities.Investment.delete(id);
-    reloadAll();
+  const [actionError, setActionError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const deleteAsset = async (id, entity) => {
+    if (deleting || !window.confirm('Excluir este item e suas movimentações, despesas e atualizações vinculadas? Esta ação é permanente.')) return false;
+    setDeleting(true);
+    setActionError('');
+    try {
+      await vault.deletePatrimonyAsset(id, entity);
+      reloadAll();
+      return true;
+    } catch (error) {
+      setActionError(error.message || 'Não foi possível excluir o item.');
+      return false;
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const reserveName = (id) => reserves.find((r) => r.id === id)?.name || '—';
@@ -81,6 +82,7 @@ export default function Patrimonio() {
 
   return (
     <div>
+      {actionError && <p role="alert" className="mb-3 text-sm text-destructive">{actionError}</p>}
       <PageHeader title="Patrimônio" subtitle="Reservas e carteira de investimentos" />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
@@ -121,7 +123,7 @@ export default function Patrimonio() {
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => showReserveHistory(r)}><History className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingRes(r); setResOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => deleteReserve(r.id)}><Trash2 className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" aria-label="Excluir item e histórico" disabled={deleting} className="h-8 w-8 text-rose-500" onClick={() => deleteAsset(r.id, 'Reserve')}><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     </div>
                     <Progress value={p} className="h-2 mt-3" />
@@ -166,7 +168,7 @@ export default function Patrimonio() {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setInvHistoryModal({ open: true, investment: inv })}><LineChart className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => showInvestmentHistory(inv)}><History className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingInv(inv); setInvOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => deleteInvestment(inv.id)}><Trash2 className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" aria-label="Excluir item e histórico" disabled={deleting} className="h-8 w-8 text-rose-500" onClick={() => deleteAsset(inv.id, 'Investment')}><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
@@ -206,10 +208,10 @@ export default function Patrimonio() {
       <HistoryModal open={historyModal.open} onOpenChange={(v) => setHistoryModal((s) => ({ ...s, open: v }))} title={historyModal.title} transactions={historyModal.transactions} type={historyModal.type} />
       <TransactionDetailDialog item={detailRes} type="reserve" open={!!detailRes} onOpenChange={(v) => !v && setDetailRes(null)}
         onEdit={(item) => { setDetailRes(null); setEditingRes(item); setResOpen(true); }}
-        onDelete={async (id) => { await deleteReserve(id); setDetailRes(null); }} />
+        onDelete={async (id) => { if (await deleteAsset(id, 'Reserve')) setDetailRes(null); }} />
       <TransactionDetailDialog item={detailInv} type="investment" open={!!detailInv} onOpenChange={(v) => !v && setDetailInv(null)}
         onEdit={(item) => { setDetailInv(null); setEditingInv(item); setInvOpen(true); }}
-        onDelete={async (id) => { await deleteInvestment(id); setDetailInv(null); }} />
+        onDelete={async (id) => { if (await deleteAsset(id, 'Investment')) setDetailInv(null); }} />
     </div>
   );
 }

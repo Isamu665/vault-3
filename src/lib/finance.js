@@ -6,18 +6,25 @@ export const brl = (v) =>
 
 export const pct = (v) => `${(Number(v) || 0).toFixed(0)}%`;
 
+export const civilDate = (value) => String(value ?? '').match(/^\d{4}-\d{2}-\d{2}(?=$|T| )/)?.[0] ?? '';
+
+export const localDate = (date = new Date()) => [
+  String(date.getFullYear()).padStart(4, '0'),
+  String(date.getMonth() + 1).padStart(2, '0'),
+  String(date.getDate()).padStart(2, '0'),
+].join('-');
+
 export const inMonth = (dateStr, year, month) => {
   if (!dateStr) return false;
-  const d = new Date(dateStr);
-  return d.getUTCFullYear() === year && d.getUTCMonth() === month;
+  const date = civilDate(dateStr);
+  return Number(date.slice(0, 4)) === year && Number(date.slice(5, 7)) === month + 1;
 };
 
 export const sum = (arr, key = 'amount') => arr.reduce((a, b) => a + (Number(b[key]) || 0), 0);
 
 export const daysUntil = (dateStr) => {
-  if (!dateStr) return null;
-  const diff = new Date(dateStr).getTime() - new Date().setHours(0, 0, 0, 0);
-  return Math.ceil(diff / 86400000);
+  const date = civilDate(dateStr);
+  return date ? (Date.parse(date) - Date.parse(localDate())) / 86400000 : null;
 };
 
 export const groupBy = (arr, key) =>
@@ -25,7 +32,7 @@ export const groupBy = (arr, key) =>
     const k = item[key] || 'Sem categoria';
     acc[k] = (acc[k] || 0) + (Number(item.amount) || 0);
     return acc;
-  }, {});
+  }, Object.create(null));
 
 export const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Alimentação', color: '#f97316', icon: 'Utensils', type: 'despesa', classification: 'necessidade' },

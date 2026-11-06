@@ -60,7 +60,7 @@ export default function Rule() {
       {showConfig && (
         <div className="rounded-2xl border bg-card p-5 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Personalizar regra</h3>
+            <h3 className="font-semibold">Personalizar regra</h3><p className="text-xs text-muted-foreground">Preferência salva neste navegador para sua conta.</p>
             <Button variant="ghost" size="sm" className="gap-2" onClick={resetConfig}>
               <RotateCcw className="w-3.5 h-3.5" /> Restaurar padrão
             </Button>
@@ -121,7 +121,7 @@ export default function Rule() {
                     ? (diff > 0.01
                         ? `${brl(diff)} abaixo do recomendado`
                         : Math.abs(diff) <= 0.01
-                          ? 'meta atingida'
+                          ? (ideal > 0 ? 'meta atingida' : 'Sem meta para este mês')
                           : `${brl(-diff)} acima da meta`)
                     : (diff >= 0 ? `${brl(diff)} disponível` : `${brl(-diff)} acima`)}
                 </span>

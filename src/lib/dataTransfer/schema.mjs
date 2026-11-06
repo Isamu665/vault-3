@@ -60,13 +60,13 @@ export const ENTITY_SPECS = [
   {
     name: 'Bill',
     label: 'Contas a pagar',
-    fields: ['description', 'amount', 'due_date', 'status', 'category'],
+    fields: ['description', 'amount', 'due_date', 'status', 'category', 'paid_at', 'payment_expense_id'],
     required: ['description', 'amount', 'due_date'],
     numbers: ['amount'],
     booleans: [],
-    dates: ['due_date'],
+    dates: ['due_date', 'paid_at'],
     enums: { status: ['pendente', 'pago'] },
-    links: {},
+    links: { payment_expense_id: 'Expense' },
   },
   {
     name: 'Debt',

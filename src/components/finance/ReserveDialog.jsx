@@ -11,15 +11,19 @@ const blank = { name: '', target_amount: '', deadline: '', notes: '' };
 export default function ReserveDialog({ open, onOpenChange, reserve, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    setError('');
     setForm(reserve ? { ...blank, ...reserve } : blank);
   }, [reserve, open]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
+    setError('');
     const payload = {
       name: form.name,
       target_amount: Number(form.target_amount) || 0,
@@ -28,17 +32,16 @@ export default function ReserveDialog({ open, onOpenChange, reserve, onSaved }) 
     };
     delete payload.id;
 
-    if (reserve?.id) {
-      await vault.entities.Reserve.update(reserve.id, payload);
-    } else {
-      const created = await vault.entities.Reserve.create(payload);
-      // Initialize current_amount to 0 for new reserves
-      await vault.entities.Reserve.update(created.id, { current_amount: 0 });
+    try {
+      if (reserve?.id) await vault.entities.Reserve.update(reserve.id, payload);
+      else await vault.entities.Reserve.create({ ...payload, current_amount: 0 });
+      onOpenChange(false);
+      onSaved();
+    } catch (error) {
+      setError(error.message || 'Não foi possível salvar.');
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
   };
 
   return (
@@ -54,6 +57,7 @@ export default function ReserveDialog({ open, onOpenChange, reserve, onSaved }) 
           <div><Label>Observações</Label><Textarea rows={2} value={form.notes || ''} onChange={(e) => set('notes', e.target.value)} /></div>
           <p className="text-xs text-muted-foreground">Use os botões + Depósito e Saque na reserva para registrar movimentações.</p>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={save} disabled={saving || !form.name}>{saving ? 'Salvando...' : 'Salvar'}</Button>

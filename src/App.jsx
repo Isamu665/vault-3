@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import { useRecordsRealtime } from '@/hooks/useCollection';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import SetupRequired from '@/components/SetupRequired';
 import DataSettings from '@/pages/DataSettings';
@@ -16,7 +17,6 @@ import Register from '@/pages/Register';
 import EmailConfirmed from '@/pages/EmailConfirmed';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-import Dashboard from '@/pages/Dashboard';
 import Incomes from '@/pages/Incomes';
 import Expenses from '@/pages/Expenses';
 import Rule from '@/pages/Rule';
@@ -24,15 +24,18 @@ import Bills from '@/pages/Bills';
 import Debts from '@/pages/Debts';
 import Goals from '@/pages/Goals';
 import Categories from '@/pages/Categories';
-import Reports from '@/pages/Reports';
-import Simulacro from '@/pages/Simulacro';
-import Patrimonio from '@/pages/Patrimonio';
 import SplashScreen from '@/components/SplashScreen';
 import { AppReadyProvider, useAppReady } from '@/lib/appReady';
+
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Patrimonio = lazy(() => import('@/pages/Patrimonio'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Simulacro = lazy(() => import('@/pages/Simulacro'));
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isConfigured, recovery, user } = useAuth();
   const location = useLocation();
+  useRecordsRealtime(user?.id);
   if (!isConfigured) return <SetupRequired />;
   if (location.pathname === '/' && new URLSearchParams(location.search).has('confirm-email')) {
     return <EmailConfirmed />;
@@ -49,7 +52,7 @@ const AuthenticatedApp = () => {
   if (recovery && location.pathname !== '/reset-password') return <Navigate to="/reset-password" replace />;
 
   return (
-    <div key={user?.id || 'signed-out'}><DataConnectionBanner /><Routes>
+    <div key={user?.id || 'signed-out'}><DataConnectionBanner /><Suspense fallback={<p role="status" className="p-6">Carregando página…</p>}><Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -71,7 +74,7 @@ const AuthenticatedApp = () => {
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
-    </Routes></div>
+    </Routes></Suspense></div>
   );
 };
 

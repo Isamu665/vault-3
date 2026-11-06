@@ -7,11 +7,11 @@ export default function ExpandableBudgetGroup({ label, share, ideal, spent, colo
   const [expanded, setExpanded] = useState(false);
   const percent = ideal ? (spent / ideal) * 100 : 0;
   const available = ideal - spent;
-  const ok = invertColor ? spent >= ideal : spent <= ideal;
+  const ok = invertColor ? ideal > 0 && spent >= ideal : spent <= ideal;
 
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-sm">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between">
+      <button aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2">
           {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           <h3 className="font-semibold">{label}</h3>
@@ -26,7 +26,7 @@ export default function ExpandableBudgetGroup({ label, share, ideal, spent, colo
           {percent.toFixed(0)}% do ideal
         </span>
         <span className="text-muted-foreground">
-          {invertColor
+          {invertColor && ideal <= 0 ? 'Sem meta para este mês' : invertColor
             ? (available > 0.01
                 ? `${brl(available)} abaixo do recomendado`
                 : Math.abs(available) <= 0.01

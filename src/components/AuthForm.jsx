@@ -10,6 +10,19 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 
+function authMessage(error) {
+  switch (error?.code) {
+    case 'invalid_credentials': return 'E-mail ou senha incorretos.';
+    case 'email_not_confirmed': return 'Confirme seu e-mail para entrar.';
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit': return 'Muitas tentativas. Aguarde um pouco e tente novamente.';
+    case 'otp_expired': return 'Este link expirou. Solicite um novo.';
+    default: return error?.message === 'Invalid login credentials'
+      ? 'E-mail ou senha incorretos.'
+      : 'Não foi possível concluir a solicitação. Tente novamente.';
+  }
+}
+
 export default function AuthForm({ mode = 'login' }) {
   const signup = mode === 'register', forgot = mode === 'forgot';
   const navigate = useNavigate();
@@ -25,7 +38,7 @@ export default function AuthForm({ mode = 'login' }) {
         provider: 'google', options: { redirectTo: new URL(safeReturnTo(), window.location.origin).href },
       });
       if (error) throw error;
-    } catch (e) { setError(e.message); setBusy(false); }
+    } catch (e) { setError(authMessage(e)); setBusy(false); }
   };
   const submit = async event => {
     event.preventDefault(); setError(''); setNotice('');
@@ -48,7 +61,7 @@ export default function AuthForm({ mode = 'login' }) {
         if (error) throw error;
         window.location.assign(safeReturnTo());
       }
-    } catch (e) { setError(e.message || 'Não foi possível continuar.'); }
+    } catch (e) { setError(authMessage(e)); }
     finally { setBusy(false); }
   };
   return <AuthLayout icon={forgot ? Mail : signup ? UserPlus : LogIn}
