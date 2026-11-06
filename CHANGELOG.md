@@ -1,6 +1,6 @@
 # Notas de atualização do V.A.U.L.T.
 
-## Em preparação
+## 6 de novembro de 2026
 
 - A confirmação de pagamento usa a data preenchida no formulário. Agora há uma ação de estorno que reabre a conta e remove a despesa vinculada.
 - Movimentações e saldos de reservas e investimentos passam a ser gravados juntos. Saques acima do saldo disponível são recusados.
@@ -9,4 +9,3 @@
 - O painel informa quando ainda não há meta mensal. Melhoramos nomes de controles, mensagens de acesso e confirmações de exclusão.
 - Categorias em uso podem ser arquivadas para preservar o histórico.
 
-Estas mudanças estão em revisão. A seção será datada após a versão chegar ao site.
