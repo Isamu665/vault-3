@@ -1,11 +1,8 @@
 # Notas de atualização do V.A.U.L.T.
 
-## Em preparação
-
-- Ao renomear uma categoria de despesa, o novo nome também aparece nas despesas e contas já vinculadas.
-
 ## 6 de novembro de 2026
 
+- Ao renomear uma categoria de despesa, o novo nome também aparece nas despesas e contas já vinculadas.
 - Simplificamos as categorias. O percentual por categoria saiu do cadastro e da edição. Os percentuais gerais da regra de orçamento continuam disponíveis.
 - A edição de categorias agora abre em uma janela própria e preserva o cadastro em andamento.
 - A confirmação de pagamento usa a data preenchida no formulário. Agora há uma ação de estorno que reabre a conta e remove a despesa vinculada.

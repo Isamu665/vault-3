@@ -8,6 +8,7 @@
 
 **6 de novembro de 2026**
 
+- **Renomear categorias:** o novo nome aparece nas despesas e contas a pagar já vinculadas, com seus valores e datas preservados.
 - **Categorias:** clique no lápis para abrir a janela de edição. O cadastro em andamento fica preservado.
 - **Orçamento:** removemos o campo “% do grupo” das categorias. Os percentuais gerais da regra de orçamento continuam configuráveis.
 
