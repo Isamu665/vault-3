@@ -33,6 +33,33 @@ test('bill payment uses confirmed details, is atomic, idempotent and owner isola
  await assert.rejects(db.query('select public.pay_bill($1,$2::jsonb)',[third.id,JSON.stringify({...payment,new_category:{name:'energia',classification:'desejo'}})]));
  await db.query('select public.pay_bill($1,$2::jsonb)',[third.id,JSON.stringify({...payment,category_id:cats[0].id})]);
  assert.equal((await db.query("select * from public.vault_records where entity='Category'")).rows.length,1);
+ await assert.rejects(db.query('delete from public.vault_records where id=$1',[bill.payment_expense_id]), /vinculada/);
+ await assert.rejects(db.query('delete from public.vault_records where id=$1',[b.id]), /Estorne/);
+ await db.query('select public.reverse_bill_payment($1)',[b.id]);
+ await db.query('select public.reverse_bill_payment($1)',[b.id]);
+ assert.equal((await db.query('select data from public.vault_records where id=$1',[b.id])).rows[0].data.status,'pendente');
+ assert.equal((await db.query('select id from public.vault_records where id=$1',[bill.payment_expense_id])).rows.length,0);
+ await assert.rejects(db.query("update public.vault_records set data=data || jsonb_build_object('name','Outra') where id=$1",[cats[0].id]), /histórico/);
+
+ const reserve=(await db.query("insert into public.vault_records(entity,data) values ('Reserve', jsonb_build_object('name','Reserva')) returning id")).rows[0];
+ const depositId='00000000-0000-0000-0000-000000000011';
+ const withdrawalId='00000000-0000-0000-0000-000000000012';
+ const move=(id,kind,amount)=>db.query("select public.record_patrimony_movement($1,$2,$3,$4,'2026-10-05','')",[reserve.id,id,kind,amount]);
+ await move(depositId,'deposit',100);
+ await move(depositId,'deposit',100);
+ await assert.rejects(move(depositId,'deposit',90), /diferente/);
+ await assert.rejects(move(withdrawalId,'withdrawal',110), /Saldo insuficiente/);
+ await move(withdrawalId,'withdrawal',25);
+ assert.equal((await db.query('select data from public.vault_records where id=$1',[reserve.id])).rows[0].data.current_amount,75);
+ await db.exec(`set request.jwt.claim.sub='${bob}';`);
+ await assert.rejects(move('00000000-0000-0000-0000-000000000013','deposit',10), /não encontrado/);
+ await db.exec(`set request.jwt.claim.sub='${alice}';`);
+ const investment=(await db.query("insert into public.vault_records(entity,data) values ('Investment',jsonb_build_object('name','Investimento','type','cdb')) returning id")).rows[0];
+ await db.query("select public.record_patrimony_movement($1,$2,'contribution',40,'2026-10-05','')",[investment.id,'00000000-0000-0000-0000-000000000014']);
+ await db.query("select public.record_patrimony_movement($1,$2,'valuation',45,'2026-10-05','')",[investment.id,'00000000-0000-0000-0000-000000000015']);
+ assert.equal((await db.query('select data from public.vault_records where id=$1',[investment.id])).rows[0].data.current_amount,45);
+ await db.query("select public.delete_patrimony_asset($1,'Investment')",[investment.id]);
+ assert.equal((await db.query("select id from public.vault_records where id=$1 or data->>'investment_id'=$1::text",[investment.id])).rows.length,0);
  await db.exec('reset role;set role anon;');await assert.rejects(pay(payment));
  }finally{await db.close();}
 });

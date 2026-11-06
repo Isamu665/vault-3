@@ -20,16 +20,29 @@ export default function Incomes() {
   const [editing, setEditing] = useState(null);
   const [detailItem, setDetailItem] = useState(null);
   const [q, setQ] = useState('');
-  const { items, reload } = useCollection('Income');
+  const { items, reload, loading, error } = useCollection('Income');
 
   const list = items
     .filter((r) => inMonth(r.date, year, month))
     .filter((r) => (r.description + r.category).toLowerCase().includes(q.toLowerCase()));
 
-  const remove = async (id) => { await vault.entities.Income.delete(id); reload(); };
+  const [actionError, setActionError] = useState('');
+  const remove = async (id) => {
+    if (!window.confirm('Excluir esta receita? Esta ação é permanente.')) return false;
+    setActionError('');
+    try {
+      await vault.entities.Income.delete(id);
+      reload();
+      return true;
+    } catch (error) {
+      setActionError(error.message || 'Não foi possível excluir o registro.');
+      return false;
+    }
+  };
 
   return (
     <div>
+      {actionError && <p role="alert" className="mb-3 text-sm text-destructive">{actionError}</p>}
       <PageHeader title="Receitas" subtitle={`Total do mês: ${brl(sum(list))}`}>
         <MonthPicker year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
         <Button className="rounded-full gap-2" onClick={() => { setEditing(null); setOpen(true); }}>
@@ -41,7 +54,7 @@ export default function Incomes() {
 
       <RecurringIncomes incomes={items} year={year} month={month} onSaved={reload} />
 
-      {list.length === 0 ? <EmptyState text="Nenhuma receita neste mês." /> : (
+      {loading ? <p role="status">Carregando receitas…</p> : error ? <p role="alert">Não foi possível carregar as receitas. <Button variant="link" onClick={() => reload()}>Tentar novamente</Button></p> : list.length === 0 ? <EmptyState text="Nenhuma receita neste mês." /> : (
         <div className="space-y-2">
           {list.map((r) => (
             <div key={r.id} onClick={() => setDetailItem(r)} className="group flex items-center justify-between rounded-2xl border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-200 dark:hover:border-emerald-800 cursor-pointer">
@@ -57,8 +70,8 @@ export default function Incomes() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">{brl(r.amount)}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(ev) => { ev.stopPropagation(); setEditing(r); setOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={(ev) => { ev.stopPropagation(); remove(r.id); }}><Trash2 className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Editar registro" onClick={(ev) => { ev.stopPropagation(); setEditing(r); setOpen(true); }}><Pencil className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" aria-label="Excluir registro" onClick={(ev) => { ev.stopPropagation(); remove(r.id); }}><Trash2 className="w-4 h-4" /></Button>
               </div>
             </div>
           ))}
@@ -68,7 +81,7 @@ export default function Incomes() {
       <IncomeDialog open={open} onOpenChange={setOpen} income={editing} onSaved={reload} />
       <TransactionDetailDialog item={detailItem} type="income" open={!!detailItem} onOpenChange={(v) => !v && setDetailItem(null)}
         onEdit={(item) => { setDetailItem(null); setEditing(item); setOpen(true); }}
-        onDelete={async (id) => { await remove(id); setDetailItem(null); }} />
+        onDelete={async (id) => { if (await remove(id)) setDetailItem(null); }} />
     </div>
   );
 }

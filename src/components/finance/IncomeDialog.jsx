@@ -7,17 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { INCOME_CATEGORIES } from '@/lib/finance';
+import { INCOME_CATEGORIES, localDate } from '@/lib/finance';
 import { makeIncomeSchedule, localToday } from '@/lib/income-recurrence.mjs';
 
-const blank = { description: '', category: 'salário', amount: '', date: new Date().toISOString().slice(0, 10), recurring: false, notes: '' };
+const blank = () => ({ description: '', category: 'salário', amount: '', date: localDate(), recurring: false, notes: '' });
 
 export default function IncomeDialog({ open, onOpenChange, income, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { setForm(income ? { ...blank, ...income } : { ...blank, date: localToday() }); setError(''); }, [income, open]);
+  useEffect(() => { setForm(income ? { ...blank(), ...income } : { ...blank(), date: localToday() }); setError(''); }, [income, open]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { brl, sum } from '@/lib/finance';
-import { economiaForRange, patrimonyAccumulated } from '@/lib/patrimony';
+import { economiaForRange, inRange, patrimonyAccumulated } from '@/lib/patrimony';
 
 export default function Reports() {
   const year = new Date().getFullYear();
@@ -25,13 +25,13 @@ export default function Reports() {
   const { items: investmentTxs } = useCollection('InvestmentTransaction');
   const { items: investments } = useCollection('Investment');
 
-  const inRange = (d) => d >= from && d <= to;
-  const fIncomes = incomes.filter((r) => inRange(r.date));
+  const validRange = Boolean(from && to && from <= to);
+  const fIncomes = incomes.filter((r) => inRange(r.date, from, to));
   // Exclude auto-created expenses (linked to investments/reserves)
   const fExpenses = expenses
-    .filter((e) => inRange(e.date))
-    .filter((e) => !e.investment_id && !e.reserve_id)
-    .filter((e) => cat === 'todas' || e.category === cat);
+    .filter((e) => inRange(e.date, from, to))
+    .filter((e) => !e.investment_id && !e.reserve_id);
+  const detailExpenses = fExpenses.filter((e) => cat === 'todas' || e.category === cat);
 
   const totalIn = sum(fIncomes);
   const totalOut = sum(fExpenses);
@@ -39,19 +39,19 @@ export default function Reports() {
   const saldo = totalIn - totalOut - economia;
   const patrimonyPeriod = economia;
   const patrimonyAcc = patrimonyAccumulated(reserveTxs, investmentTxs, investments, to);
-  const ranking = [...fExpenses].sort((a, b) => b.amount - a.amount).slice(0, 10);
+  const ranking = [...detailExpenses].sort((a, b) => b.amount - a.amount).slice(0, 10);
 
   return (
     <div>
       <PageHeader title="Relatórios" subtitle="Analise seus números por período e categoria" />
 
       <div className="rounded-2xl border bg-card p-5 shadow-sm mb-6 grid gap-4 sm:grid-cols-3">
-        <div><Label>De</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-xl" /></div>
-        <div><Label>Até</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-xl" /></div>
+        <div><Label htmlFor="report-from">De</Label><Input id="report-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-xl" /></div>
+        <div><Label htmlFor="report-to">Até</Label><Input id="report-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-xl" /></div>
         <div>
-          <Label>Categoria</Label>
+          <Label htmlFor="report-category">Categoria do detalhamento</Label>
           <Select value={cat} onValueChange={setCat}>
-            <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="report-category" className="rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas</SelectItem>
               {categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
@@ -60,17 +60,19 @@ export default function Reports() {
         </div>
       </div>
 
+      {!validRange && <p role="alert" className="text-sm text-destructive">Informe um período válido. A data inicial deve ser igual ou anterior à final.</p>}
+      {validRange && <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-6">
         <StatCard label="Receitas do período" value={brl(totalIn)} tone="positive" />
         <StatCard label="Despesas do período" value={brl(totalOut)} tone="negative" />
         <StatCard label="Economia do período" value={brl(economia)} tone="accent" />
-        <StatCard label="Saldo acumulado" value={brl(saldo)} tone={saldo >= 0 ? 'positive' : 'negative'} />
+        <StatCard label="Saldo do período após aportes" value={brl(saldo)} tone={saldo >= 0 ? 'positive' : 'negative'} />
         <StatCard label="Patrimônio do período" value={brl(patrimonyPeriod)} tone="accent" />
         <StatCard label="Patrimônio acumulado" value={brl(patrimonyAcc)} tone="accent" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Distribuição por categoria"><CategoryDonut expenses={fExpenses} categories={categories} /></Section>
+        <Section title="Distribuição por categoria"><CategoryDonut expenses={detailExpenses} categories={categories} /></Section>
         <Section title="Comparativo anual">
           <MonthlyChart incomes={incomes} expenses={expenses} year={year} reserveTxs={reserveTxs} investmentTxs={investmentTxs} investments={investments} />
         </Section>
@@ -90,6 +92,7 @@ export default function Reports() {
           )}
         </Section>
       </div>
+      </>}
     </div>
   );
 }

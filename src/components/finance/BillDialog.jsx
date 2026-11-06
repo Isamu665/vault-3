@@ -1,3 +1,4 @@
+import { localDate } from '@/lib/finance';
 import React, { useState, useEffect } from 'react';
 import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -6,12 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const blank = { description: '', amount: '', due_date: new Date().toISOString().slice(0, 10), category: '', status: 'pendente' };
+const blank = () => ({ description: '', amount: '', due_date: localDate(), category: '', status: 'pendente' });
 
 export default function BillDialog({ open, onOpenChange, bill, onSaved, categories = [], categoriesLoading, categoriesError }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setForm(bill ? { ...blank, ...bill } : blank); }, [bill, open]);
+  useEffect(() => { setForm(bill ? { ...blank(), ...bill } : blank()); }, [bill, open]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const selectedCategory = categories.find((c) => c.name === form.category || c.id === form.category);
   const legacyCategory = form.category && !selectedCategory;

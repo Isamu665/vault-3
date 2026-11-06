@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { localDate } from '@/lib/finance';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { vault } from '@/api/vaultClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -7,33 +8,40 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function InvestmentUpdateDialog({ open, onOpenChange, investment, onSaved }) {
-  const [form, setForm] = useState({ amount: '', date: new Date().toISOString().slice(0, 10), notes: '' });
+  const [form, setForm] = useState({ amount: '', date: localDate(), notes: '' });
+  const attempt = useRef(null);
+  const fieldId = useId();
+  const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) setForm({ amount: '', date: new Date().toISOString().slice(0, 10), notes: '' });
+    if (open) {
+      setForm({ amount: '', date: localDate(), notes: '' });
+      setError('');
+      attempt.current = null;
+    }
   }, [open]);
 
   const save = async () => {
     const amount = Number(form.amount) || 0;
-    if (amount <= 0) return;
+    if (saving || amount <= 0 || !form.date) return;
+    const key = JSON.stringify([investment.id, 'valuation', amount, form.date, form.notes]);
+    if (attempt.current?.key !== key) attempt.current = { key, id: crypto.randomUUID() };
     setSaving(true);
-
-    await vault.entities.InvestmentUpdate.create({
-      investment_id: investment.id,
-      date: form.date,
-      amount,
-      notes: form.notes,
-    });
-    await vault.entities.Investment.update(investment.id, { current_amount: amount });
-
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
+    setError('');
+    try {
+      await vault.recordPatrimonyMovement(investment.id, attempt.current.id, 'valuation', { ...form, amount });
+      onOpenChange(false);
+      onSaved();
+    } catch (error) {
+      setError(error.message || 'Não foi possível salvar a movimentação.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!saving) onOpenChange(value); }}>
       <DialogContent className="sm:max-w-sm rounded-2xl">
         <DialogHeader><DialogTitle>Atualizar valor</DialogTitle></DialogHeader>
         <div className="space-y-4">
@@ -42,21 +50,22 @@ export default function InvestmentUpdateDialog({ open, onOpenChange, investment,
             <p className="text-sm font-medium mt-1">{investment?.name}</p>
           </div>
           <div>
-            <Label>Valor atual total</Label>
-            <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0,00" />
+            <Label htmlFor={fieldId + "-amount"}>Valor atual total</Label>
+            <Input id={fieldId + "-amount"} disabled={saving} type="number" step="0.01" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0,00" />
           </div>
           <div>
-            <Label>Data</Label>
-            <Input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+            <Label htmlFor={fieldId + "-date"}>Data</Label>
+            <Input id={fieldId + "-date"} disabled={saving} type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
           </div>
           <div>
-            <Label>Observações (opcional)</Label>
-            <Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+            <Label htmlFor={fieldId + "-notes"}>Observações (opcional)</Label>
+            <Textarea id={fieldId + "-notes"} disabled={saving} rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
           </div>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={saving || !form.amount}>{saving ? 'Salvando...' : 'Confirmar'}</Button>
+          <Button disabled={saving} variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={save} disabled={saving || !(Number(form.amount) > 0) || !form.date}>{saving ? 'Salvando...' : 'Confirmar'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

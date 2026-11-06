@@ -12,3 +12,5 @@ Read README.md and docs/SETUP.md before changing backend configuration.
 - Run npm run lint, npm test, npm run build:pages and npm run typecheck. Record existing type issues honestly.
 - Web hosting is GitHub Pages. Read deployment documentation before merging or publishing.
 - Do not publish or alter the legacy production app.
+
+- For every user-facing delivery, update CHANGELOG.md in Portuguese under Em preparação. Move the notes to a dated section only after the release is verified. Keep credentials and private data out of the notes.

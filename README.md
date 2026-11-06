@@ -4,6 +4,8 @@
 
 🌐 **[Acessar o V.A.U.L.T](https://isamu665.github.io/vault-3/)**
 
+**[Notas de atualização do V.A.U.L.T.](CHANGELOG.md)**
+
 O V.A.U.L.T é um aplicativo web de finanças pessoais que reúne receitas, despesas, contas a pagar, dívidas, metas, reservas e investimentos. Funciona diretamente no navegador, no computador ou no celular: **não é necessário instalar ferramentas de programação nem rodar o projeto localmente para usar**.
 
 ## O intuito do projeto

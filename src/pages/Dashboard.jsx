@@ -11,7 +11,7 @@ import CategoryDonut from '@/components/finance/CategoryDonut';
 import MonthlyChart from '@/components/finance/MonthlyChart';
 import BalanceLineChart from '@/components/finance/BalanceLineChart';
 import { Progress } from '@/components/ui/progress';
-import { brl, inMonth, sum, groupBy, daysUntil, MONTHS } from '@/lib/finance';
+import { brl, inMonth, sum, groupBy, daysUntil, localDate, MONTHS } from '@/lib/finance';
 import { economiaForMonth, patrimonyAccumulated, patrimonyBreakdown } from '@/lib/patrimony';
 import { computeSaldoDisponivel } from '@/lib/cashflow';
 import useRuleConfig from '@/hooks/useRuleConfig';
@@ -62,7 +62,7 @@ export default function Dashboard() {
   const pendingDebt = debts.reduce(
     (a, d) => a + Math.max(0, ((d.installments_total || 0) - (d.installment_current || 0)) * (d.installment_amount || 0)), 0);
 
-  const endOfMonth = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+  const endOfMonth = localDate(new Date(year, month + 1, 0));
   const totalWealth = patrimonyAccumulated(reserveTxs, investmentTxs, investments, endOfMonth);
 
   const groupData = GROUPS.map((g) => {

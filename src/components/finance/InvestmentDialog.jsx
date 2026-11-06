@@ -27,15 +27,19 @@ const blank = {
 export default function InvestmentDialog({ open, onOpenChange, investment, reserves, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    setError('');
     setForm(investment ? { ...blank, ...investment } : blank);
   }, [investment, open]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
+    setError('');
     const payload = {
       name: form.name,
       type: form.type,
@@ -50,15 +54,16 @@ export default function InvestmentDialog({ open, onOpenChange, investment, reser
     };
     delete payload.id;
 
-    if (investment?.id) {
-      await vault.entities.Investment.update(investment.id, payload);
-    } else {
-      await vault.entities.Investment.create(payload);
+    try {
+      if (investment?.id) await vault.entities.Investment.update(investment.id, payload);
+      else await vault.entities.Investment.create(payload);
+      onOpenChange(false);
+      onSaved();
+    } catch (error) {
+      setError(error.message || 'Não foi possível salvar.');
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
   };
 
   const showQuantidade = ['acoes', 'etf', 'cripto'].includes(form.type);
@@ -109,6 +114,7 @@ export default function InvestmentDialog({ open, onOpenChange, investment, reser
           )}
           <div><Label>Observações</Label><Textarea rows={2} value={form.notes || ''} onChange={(e) => set('notes', e.target.value)} /></div>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={save} disabled={saving || !form.name}>{saving ? 'Salvando...' : 'Salvar'}</Button>

@@ -13,13 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue,SelectSeparator } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { brl, daysUntil } from '@/lib/finance';
+import { brl, civilDate, daysUntil, localDate } from '@/lib/finance';
 
 const statusOf = (b) => {
   if (b.status === 'pago') return { label: 'Pago', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' };
   const d = daysUntil(b.due_date);
   if (d < 0) return { label: 'Atrasado', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' };
-  if (d <= 5) return { label: 'Próximo do vencimento', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' };
+  if (d !== null && d <= 5) return { label: 'Próximo do vencimento', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' };
   return { label: 'Pendente', cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
 };
 
@@ -39,26 +39,58 @@ export default function Bills() {
   const {items:categories,loading:categoriesLoading,error:categoriesError}=useCollection('Category');
   const [categoryChoice,setCategoryChoice]=useState(''),[newName,setNewName]=useState(''),[newClass,setNewClass]=useState('necessidade');
   const expenseCategories=categories.filter(c=>(!c.type || c.type==='despesa') && c.status!=='inactive');
-  const { items, reload } = useCollection('Bill', 'due_date');
+  const { items, reload, loading, error } = useCollection('Bill', 'due_date');
 
-  const toggle = async (b) => {
-    if(paying || b.status==='pago')return;
+  const toggle = async (event) => {
+    event.preventDefault();
+    const b = paymentBill;
+    const date = new FormData(event.currentTarget).get('payment-date');
+    if(!b || paying || b.status==='pago' || typeof date !== 'string' || !date)return;
     setPaying(b.id);setPaymentError('');setNotice('');
-    try { const result=await vault.payBill(b.id,{...payment,amount:Number(payment.amount),...(categoryChoice==='new'?{new_category:{name:newName.trim(),classification:newClass}}:categoryChoice?{category_id:categoryChoice}:{})});setNotice(result.alreadyPaid?'Esta conta já estava paga. Nenhuma despesa foi duplicada.':'Conta marcada como paga e despesa registrada com os dados confirmados.');setPaymentBill(null);reload(); }
+    try { const result=await vault.payBill(b.id,{...payment,date,amount:Number(payment.amount),...(categoryChoice==='new'?{new_category:{name:newName.trim(),classification:newClass}}:categoryChoice?{category_id:categoryChoice}:{})});setNotice(result.alreadyPaid?'Esta conta já estava paga. Nenhuma despesa foi duplicada.':'Conta marcada como paga e despesa registrada com os dados confirmados.');setPaymentBill(null);reload(); }
     catch(e){setPaymentError(e.message || 'Não foi possível registrar o pagamento.');}
     finally{setPaying('');}
   };
-  const remove = async (id) => { await vault.entities.Bill.delete(id); reload(); };
+  const [actionError, setActionError] = useState('');
+  const remove = async (id) => {
+    if (!window.confirm('Excluir esta conta? Esta ação é permanente.')) return false;
+    setActionError('');
+    try {
+      await vault.entities.Bill.delete(id);
+      reload();
+      return true;
+    } catch (error) {
+      setActionError(error.message || 'Não foi possível excluir o registro.');
+      return false;
+    }
+  };
+
+  const reversePayment = async (bill) => {
+    if (paying || !window.confirm('Estornar este pagamento? A despesa vinculada será removida e a conta voltará a ficar pendente.')) return;
+    setPaying(bill.id);
+    setActionError('');
+    setNotice('');
+    try {
+      await vault.reverseBillPayment(bill.id);
+      setNotice('Pagamento estornado.');
+      reload();
+    } catch (error) {
+      setActionError(error.message || 'Não foi possível estornar o pagamento.');
+    } finally {
+      setPaying('');
+    }
+  };
 
   const week = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek());
     d.setDate(d.getDate() + i);
-    const iso = d.toISOString().slice(0, 10);
-    return { date: d, iso, bills: items.filter((b) => b.due_date === iso) };
+    const iso = localDate(d);
+    return { date: d, iso, bills: items.filter((b) => civilDate(b.due_date) === iso) };
   });
 
   return (
     <div>
+      {actionError && <p role="alert" className="mb-3 text-sm text-destructive">{actionError}</p>}
       <PageHeader title="Contas a pagar" subtitle="Acompanhe vencimentos por semana">
         <Button className="rounded-full gap-2" onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> Nova conta</Button>
       </PageHeader>
@@ -85,7 +117,7 @@ export default function Bills() {
         </div>
       </Section>
 
-      {items.length === 0 ? <EmptyState text="Nenhuma conta cadastrada." /> : (
+      {loading ? <p role="status">Carregando contas…</p> : error ? <p role="alert">Não foi possível carregar as contas.</p> : items.length === 0 ? <EmptyState text="Nenhuma conta cadastrada." /> : (
         <div className="space-y-2">
           {items.map((b) => {
             const s = statusOf(b);
@@ -100,8 +132,9 @@ export default function Bills() {
                 <div className="flex items-center gap-3" onClick={(ev) => ev.stopPropagation()}>
                   <Badge className={`${s.cls} border-0 font-normal`}>{s.label}</Badge>
                   <span className="font-semibold">{brl(b.amount)}</span>
-                  <Button variant="ghost" size="icon" aria-label={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} title={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} disabled={!!paying || b.status==='pago'} className="h-8 w-8 text-emerald-600" onClick={() => {setPaymentError('');setCategoryChoice(expenseCategories.find(c=>c.name===b.category || c.id===b.category)?.id || '');setNewName('');setNewClass('necessidade');setPaymentBill(b);const d=new Date();setPayment({amount:String(b.amount),category:b.category || '',date:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),payment_method:'pix'});}}><Check className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => remove(b.id)}><Trash2 className="w-4 h-4" /></Button>
+                  {b.status === 'pago' && <Button variant="ghost" size="sm" disabled={!!paying} onClick={() => reversePayment(b)}>Estornar</Button>}
+                  <Button variant="ghost" size="icon" aria-label={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} title={b.status==='pago'?'Conta já paga':'Marcar como paga e registrar despesa'} disabled={!!paying || b.status==='pago'} className="h-8 w-8 text-emerald-600" onClick={() => {setPaymentError('');setCategoryChoice(expenseCategories.find(c=>c.name===b.category || c.id===b.category)?.id || '');setNewName('');setNewClass('necessidade');setPaymentBill(b);setPayment({amount:String(b.amount),category:b.category || '',date:localDate(),payment_method:'pix'});}}><Check className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" aria-label="Excluir conta" disabled={Boolean(b.payment_expense_id)} onClick={() => remove(b.id)}><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
             );
@@ -110,10 +143,10 @@ export default function Bills() {
       )}
 
       <Dialog open={!!paymentBill} onOpenChange={value=>{if(!value && !paying)setPaymentBill(null);}}><DialogContent className="sm:max-w-lg rounded-2xl max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>Confirmar pagamento</DialogTitle><DialogDescription>{paymentBill?.description} — a despesa será criada com os dados abaixo. O vencimento e o valor previsto da conta serão preservados.</DialogDescription></DialogHeader>
-        <form className="space-y-4" onSubmit={e=>{e.preventDefault();toggle(paymentBill);}}>
+        <form className="space-y-4" onSubmit={toggle}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5"><Label htmlFor="payment-amount">Valor pago</Label><Input id="payment-amount" required type="number" min="0.01" step="0.01" value={payment.amount} onChange={e=>setPayment({...payment,amount:e.target.value})} disabled={!!paying}/></div>
-            <div className="space-y-1.5"><Label htmlFor="payment-date">Data do pagamento</Label><Input id="payment-date" required type="date" value={payment.date} onChange={e=>setPayment({...payment,date:e.target.value})} disabled={!!paying}/></div>
+            <div className="space-y-1.5"><Label htmlFor="payment-date">Data do pagamento</Label><Input id="payment-date" name="payment-date" required type="date" defaultValue={payment.date} key={paymentBill?.id} disabled={!!paying}/></div>
           </div>
           <div className="space-y-1.5"><Label htmlFor="payment-category">Categoria</Label><Select value={categoryChoice} onValueChange={setCategoryChoice} disabled={!!paying || categoriesLoading || !!categoriesError}><SelectTrigger id="payment-category"><SelectValue placeholder={categoriesLoading?'Carregando categorias…':'Selecione uma categoria'}/></SelectTrigger><SelectContent>{expenseCategories.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}{expenseCategories.length>0 && <SelectSeparator/>}<SelectItem value="new"><span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300"><Plus className="w-4 h-4"/>Criar nova categoria</span></SelectItem></SelectContent></Select></div>
           {categoriesError && <p role="alert" className="text-destructive text-sm">Não foi possível carregar suas categorias. Tente novamente.</p>}
@@ -126,7 +159,7 @@ export default function Bills() {
       <BillDialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) setEditing(null); }} bill={editing} onSaved={reload} categories={expenseCategories} categoriesLoading={categoriesLoading} categoriesError={categoriesError} />
       <TransactionDetailDialog item={detailItem} type="bill" open={!!detailItem} onOpenChange={(v) => !v && setDetailItem(null)}
         onEdit={(item) => { setDetailItem(null); setEditing(item); setOpen(true); }}
-        onDelete={async (id) => { await remove(id); setDetailItem(null); }} />
+        onDelete={async (id) => { if (await remove(id)) setDetailItem(null); }} />
     </div>
   );
 }

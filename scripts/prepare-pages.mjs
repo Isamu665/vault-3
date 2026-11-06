@@ -2,6 +2,10 @@ import { copyFile, writeFile, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 await copyFile('dist/index.html','dist/404.html');
 await writeFile('dist/.nojekyll','');
+const sourceCommit = process.env.GITHUB_SHA;
+if (sourceCommit && /^[a-f0-9]{40}$/i.test(sourceCommit)) {
+  await writeFile('dist/version.json', JSON.stringify({ sourceCommit }) + '\n');
+}
 const html = await readFile('dist/index.html','utf8');
 const base = html.match(/href="([^"]*)manifest.json"/)[1];
 const assets = (await readdir('dist/assets')).map(file => base + 'assets/' + file);
