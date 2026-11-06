@@ -31,7 +31,7 @@ export default function EmailConfirmed() {
   return (
     <AuthLayout icon={confirmed ? CircleCheck : Mail}
       title={confirmed ? 'E-mail confirmado!' : status === 'checking' ? 'Verificando seu e-mail' : 'Confirmação indisponível'}
-      subtitle="V.A.U.L.T.">
+      subtitle="V.A.U.L.T." footer={null}>
       <p role={status === 'failed' ? 'alert' : 'status'} className="mb-4 text-sm text-muted-foreground">
         {confirmed ? 'Você será redirecionado para o painel em 3 segundos.' :
           status === 'checking' ? 'Aguarde enquanto verificamos o link.' :
