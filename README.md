@@ -8,9 +8,8 @@
 
 **6 de novembro de 2026**
 
-- **Contas a pagar:** a baixa usa a data escolhida. Você pode estornar o pagamento para reabrir a conta e remover a despesa vinculada.
-- **Patrimônio:** movimentações e saldos são gravados juntos. O app bloqueia saques acima do saldo disponível.
-- **Backup e relatórios:** o backup preserva o vínculo entre a conta paga e a despesa. Nos relatórios, o filtro por categoria mantém os totais gerais do período.
+- **Categorias:** clique no lápis para abrir a janela de edição. O cadastro em andamento fica preservado.
+- **Orçamento:** removemos o campo “% do grupo” das categorias. Os percentuais gerais da regra de orçamento continuam configuráveis.
 
 Para consultar todas as mudanças, clique em **[Ver histórico completo de atualizações](CHANGELOG.md)**. Você também pode abrir o arquivo `CHANGELOG.md` na lista de arquivos do repositório.
 
