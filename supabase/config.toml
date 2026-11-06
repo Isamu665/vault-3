@@ -1,8 +1,0 @@
-project_id = "vault-independent"
-
-[functions.assistant]
-# The handler validates the JWT with auth.getUser; this supports new signing keys.
-verify_jwt = false
-
-[functions.market-indicators]
-verify_jwt = false

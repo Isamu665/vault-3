@@ -1,8 +1,0 @@
-{
-  "version": "2.0.0",
-  "tasks": [
-    { "label": "V.A.U.L.T: iniciar", "type": "shell", "command": "npm run dev -- --host 127.0.0.1", "isBackground": true, "problemMatcher": [] },
-    { "label": "V.A.U.L.T: verificar", "type": "shell", "command": "npm run lint && npm test", "problemMatcher": [] },
-    { "label": "V.A.U.L.T: build GitHub", "type": "shell", "command": "npm run build:pages", "group": "build", "problemMatcher": [] }
-  ]
-}
