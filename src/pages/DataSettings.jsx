@@ -66,7 +66,12 @@ export default function DataSettings() {
     <section className="rounded-2xl border bg-card p-6 space-y-3"><Database className="text-indigo-400" /><h2 className="text-lg font-semibold">Sua conta</h2><p className="text-sm break-all">{user.email}</p><p className="text-sm text-muted-foreground">Os dados serão adicionados somente a esta conta. Senhas, sessões e credenciais não são transferidas.</p></section>
     <section className="rounded-2xl border bg-card p-6 space-y-4"><h2 className="text-lg font-semibold">Exportar meus dados</h2><p className="text-sm text-muted-foreground">Inclui receitas, despesas, reservas, investimentos e seus vínculos, além das preferências disponíveis neste navegador. O JSON contém informações financeiras; guarde-o em local privado.</p><Button onClick={backup} disabled={busy} className="gap-2"><Download className="w-4 h-4" />Exportar JSON</Button></section>
     <section className="rounded-2xl border bg-card p-6 space-y-4"><h2 className="text-lg font-semibold flex items-center gap-2"><Upload className="w-5 h-5" />Importar dados</h2><p className="text-sm text-muted-foreground">Aceita o backup V.A.U.L.T. v1 exportado pelo Base44 ou por este aplicativo e as listas JSON antigas. Limite: 8 MB e 10.000 registros. A prévia não grava dados.</p>
-      {!summary && <label className="block text-sm">Selecionar arquivo JSON<input ref={input} className="block mt-2 max-w-full" type="file" accept=".json,application/json" onChange={read} disabled={busy} /></label>}
+      {!summary && <div>
+        <input ref={input} hidden type="file" accept=".json,application/json" onChange={read} disabled={busy} />
+        <Button type="button" onClick={() => input.current?.click()} disabled={busy} className="gap-2">
+          <Upload className="w-4 h-4" aria-hidden="true" />Importar JSON
+        </Button>
+      </div>}
       {preview && !busy && <ImportPreview preview={preview} onConfirm={apply} onCancel={reset} restore={restore} onRestore={setRestore} />}
       {summary && <div className="space-y-3" role="status"><p className="font-medium flex items-center gap-2 text-emerald-600"><CheckCircle2 className="w-5 h-5" />{summary.addedTotal} registro(s) adicionado(s)</p><p className="text-sm text-muted-foreground">{summary.duplicatesTotal} registro(s) já existentes foram preservados. Nenhum registro foi apagado ou sobrescrito.</p>
         <ul className="text-sm">{Object.entries(summary.added).filter(([, n]) => n > 0).map(([entity, n]) => <li key={entity}>{SPEC_BY_NAME[entity]?.label || entity}: {n}</li>)}</ul>
@@ -76,3 +81,4 @@ export default function DataSettings() {
     </section>{busy && <p role="status" className="text-sm text-muted-foreground">{progress}</p>}{error && <p role="alert" className="text-destructive break-words">{error}</p>}{notice && <p role="status" className="text-emerald-600">{notice}</p>}
   </div>;
 }
+
