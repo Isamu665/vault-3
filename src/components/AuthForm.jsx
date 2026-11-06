@@ -39,7 +39,7 @@ export default function AuthForm({ mode = 'login' }) {
         setNotice('Se houver uma conta para este e-mail, você receberá as instruções de recuperação.');
       } else if (signup) {
         const { data, error } = await auth.signUp({ email, password,
-          options: { emailRedirectTo: homeUrl, data: { full_name: name } } });
+          options: { emailRedirectTo: homeUrl + '?confirm-email=1', data: { full_name: name } } });
         if (error) throw error;
         if (data.session) navigate('/', { replace: true });
         else setNotice('Confira seu e-mail e abra o link de confirmação para ativar sua conta.');
@@ -70,3 +70,4 @@ export default function AuthForm({ mode = 'login' }) {
     </form>
   </AuthLayout>;
 }
+

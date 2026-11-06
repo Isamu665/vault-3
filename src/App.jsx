@@ -13,6 +13,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
+import EmailConfirmed from '@/pages/EmailConfirmed';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import Dashboard from '@/pages/Dashboard';
@@ -33,6 +34,9 @@ const AuthenticatedApp = () => {
   const { isLoadingAuth, isConfigured, recovery, user } = useAuth();
   const location = useLocation();
   if (!isConfigured) return <SetupRequired />;
+  if (location.pathname === '/' && new URLSearchParams(location.search).has('confirm-email')) {
+    return <EmailConfirmed />;
+  }
 
   if (isLoadingAuth) {
     return (
@@ -103,3 +107,4 @@ function App() {
 }
 
 export default App
+
