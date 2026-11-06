@@ -39,7 +39,17 @@ test('bill payment uses confirmed details, is atomic, idempotent and owner isola
  await db.query('select public.reverse_bill_payment($1)',[b.id]);
  assert.equal((await db.query('select data from public.vault_records where id=$1',[b.id])).rows[0].data.status,'pendente');
  assert.equal((await db.query('select id from public.vault_records where id=$1',[bill.payment_expense_id])).rows.length,0);
- await assert.rejects(db.query("update public.vault_records set data=data || jsonb_build_object('name','Outra') where id=$1",[cats[0].id]), /histórico/);
+ await db.exec(`set request.jwt.claim.sub='${bob}';`);
+ const otherExpense=(await db.query("insert into public.vault_records(entity,data) values ('Expense',jsonb_build_object('category','Energia','amount',7)) returning id")).rows[0];
+ await db.exec(`set request.jwt.claim.sub='${alice}';`);
+ await db.query("update public.vault_records set data=data || jsonb_build_object('name','Outra') where id=$1",[cats[0].id]);
+ const renamed=(await db.query("select data from public.vault_records where entity='Expense' and data->>'category'='Outra'")).rows;
+ assert.equal(renamed.length,2);
+ assert.deepEqual(renamed.find(row=>row.data.description==='Teste').data,{description:'Teste',...payment,category:'Outra',need_type:'necessidade'});
+ await assert.rejects(db.query('delete from public.vault_records where id=$1',[cats[0].id]), /histórico/);
+ await db.exec(`set request.jwt.claim.sub='${bob}';`);
+ assert.equal((await db.query('select data from public.vault_records where id=$1',[otherExpense.id])).rows[0].data.category,'Energia');
+ await db.exec(`set request.jwt.claim.sub='${alice}';`);
 
  const reserve=(await db.query("insert into public.vault_records(entity,data) values ('Reserve', jsonb_build_object('name','Reserva')) returning id")).rows[0];
  const depositId='00000000-0000-0000-0000-000000000011';
