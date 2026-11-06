@@ -110,7 +110,7 @@ A personalização da regra de orçamento fica neste navegador, separada por usu
 
 ## Para quem deseja desenvolver
 
-O uso normal acontece pelo **[GitHub Pages](https://isamu665.github.io/vault-3/)**. A base técnica usa **React 18, Vite, Tailwind CSS, Supabase Auth/Postgres, Edge Functions e Gemini**, sem dependência do SDK ou runtime do Base44. Os esquemas em `docs/legacy-schema` são apenas referência histórica.
+O uso normal acontece pelo **[GitHub Pages](https://isamu665.github.io/vault-3/)**. A base técnica usa **React 18, Vite, Tailwind CSS, Supabase Auth/Postgres, Edge Functions e Gemini**. Os esquemas em `docs/legacy-schema` são apenas referência histórica.
 
 As instruções de configuração de uma instância, autenticação, funções e hospedagem estão em **[docs/SETUP.md](docs/SETUP.md)**. Algumas informações desse guia registram o estado da implantação original.
 
