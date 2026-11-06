@@ -47,7 +47,12 @@ function entityClient(entity) {
       // Merge atomically in SQL, preserving concurrent updates to other fields.
       const row = unwrap(await requireBackend().rpc('patch_vault_record', { record_id: id, record_entity: entity, patch: recordData(input) }).single());
       if (!row || row.user_id !== userId) throw new Error('Registro não encontrado.');
-      changed(entity); return fromRecord(row);
+      changed(entity);
+      if (entity === 'Category' && Object.hasOwn(input, 'name')) {
+        changed('Expense');
+        changed('Bill');
+      }
+      return fromRecord(row);
     },
     async delete(id) {
       if (entity === 'Income') {
