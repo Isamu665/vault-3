@@ -8,6 +8,7 @@
 
 **6 de novembro de 2026**
 
+- **Assistente:** o Panorama abre sem o aviso do Gemini. A autorização aparece ao entrar em **Conversar** se você ainda não tiver concedido acesso.
 - **Renomear categorias:** o novo nome aparece nas despesas e contas a pagar já vinculadas, com seus valores e datas preservados.
 - **Categorias:** clique no lápis para abrir a janela de edição. O cadastro em andamento fica preservado.
 - **Orçamento:** removemos o campo “% do grupo” das categorias. Os percentuais gerais da regra de orçamento continuam configuráveis.
