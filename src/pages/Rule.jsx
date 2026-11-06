@@ -131,8 +131,6 @@ export default function Rule() {
                   <p className="text-xs font-medium text-muted-foreground">{b.key === 'patrimônio' ? 'Aplicações' : `Categorias (${groupCats.length})`}</p>
                   {groupCats.map((cat) => {
                     const catSpent = b.key === 'patrimônio' ? cat.spent : sum(mExpenses.filter((e) => e.category === cat.name));
-                    const catBudget = cat.percentage > 0 ? (ideal * cat.percentage / 100) : (ideal / groupCats.length);
-                    const catPercent = b.key === 'patrimônio' ? 0 : (catBudget ? (catSpent / catBudget) * 100 : 0);
                     return (
                       <div key={cat.id || cat.name}>
                         <div className="flex justify-between text-xs">
@@ -142,7 +140,6 @@ export default function Rule() {
                           </span>
                           <span className="text-muted-foreground">{brl(catSpent)}</span>
                         </div>
-                        {b.key !== 'patrimônio' && <Progress value={Math.min(100, catPercent)} className="h-1 mt-1" />}
                       </div>
                     );
                   })}

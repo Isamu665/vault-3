@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { brl } from '@/lib/finance';
 
-export default function ExpandableBudgetGroup({ label, share, ideal, spent, color, categories, noCategoryIdeal, invertColor }) {
+export default function ExpandableBudgetGroup({ label, share, ideal, spent, color, categories, invertColor }) {
   const [expanded, setExpanded] = useState(false);
   const percent = ideal ? (spent / ideal) * 100 : 0;
   const available = ideal - spent;
@@ -37,41 +37,15 @@ export default function ExpandableBudgetGroup({ label, share, ideal, spent, colo
       </div>
       {expanded && categories.length > 0 && (
         <div className="mt-4 pt-4 border-t space-y-3">
-          {categories.map((cat) => {
-            if (noCategoryIdeal) {
-              return (
-                <div key={cat.name}>
-                  <div className="flex justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color || color }} />
-                      {cat.name}
-                    </span>
-                    <span className="text-muted-foreground">{brl(cat.spent)}</span>
-                  </div>
-                </div>
-              );
-            }
-            const catIdeal = cat.percentage > 0 ? (ideal * cat.percentage / 100) : (ideal / Math.max(1, categories.length));
-            const catPercent = catIdeal ? (cat.spent / catIdeal) * 100 : 0;
-            const catOk = cat.spent <= catIdeal;
-            return (
-              <div key={cat.name}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color || color }} />
-                    {cat.name}
-                    {cat.percentage > 0 && <span className="text-xs text-muted-foreground">({cat.percentage}%)</span>}
-                  </span>
-                  <span className="text-muted-foreground">{brl(cat.spent)} / {brl(catIdeal)}</span>
-                </div>
-                <Progress value={Math.min(100, catPercent)} className={`h-1.5 ${catOk ? '[&>div]:bg-emerald-500' : '[&>div]:bg-rose-500'}`} />
-                <div className="mt-0.5 flex justify-between text-xs text-muted-foreground">
-                  <span>{catPercent.toFixed(0)}%</span>
-                  <span>{catOk ? `${brl(catIdeal - cat.spent)} disp.` : `${brl(cat.spent - catIdeal)} acima`}</span>
-                </div>
-              </div>
-            );
-          })}
+          {categories.map(cat => (
+            <div key={cat.name} className="flex justify-between text-sm">
+              <span className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color || color }} />
+                {cat.name}
+              </span>
+              <span className="text-muted-foreground">{brl(cat.spent)}</span>
+            </div>
+          ))}
         </div>
       )}
       {expanded && categories.length === 0 && (

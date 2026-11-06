@@ -70,7 +70,7 @@ export default function Dashboard() {
     if (g.key === 'patrimônio') {
       const spent = economia;
       const categories = patrimonyBreakdown(reserveTxs, investmentTxs, reserves, investments, year, month);
-      return { ...g, ideal, spent, categories, noCategoryIdeal: true };
+      return { ...g, ideal, spent, categories };
     }
     const groupExpenses = mExpenses.filter((e) => (e.need_type || 'necessidade') === g.key);
     const spent = sum(groupExpenses);
@@ -78,13 +78,13 @@ export default function Dashboard() {
       .filter((c) => c.classification === g.key && c.type === 'despesa')
       .map((cat) => {
         const catSpent = sum(groupExpenses.filter((e) => e.category === cat.name));
-        return { name: cat.name, spent: catSpent, percentage: cat.percentage || 0, color: cat.color };
+        return { name: cat.name, spent: catSpent, color: cat.color };
       });
     const knownNames = new Set(groupCats.map((c) => c.name));
     const unknownCats = Object.entries(groupBy(groupExpenses, 'category'))
       .filter(([name]) => name !== 'Sem categoria' && !knownNames.has(name))
-      .map(([name, amt]) => ({ name, spent: amt, percentage: 0, color: '#64748b' }));
-    return { ...g, ideal, spent, categories: [...groupCats, ...unknownCats], noCategoryIdeal: false };
+      .map(([name, amt]) => ({ name, spent: amt, color: '#64748b' }));
+    return { ...g, ideal, spent, categories: [...groupCats, ...unknownCats] };
   });
 
   return (
@@ -113,7 +113,7 @@ export default function Dashboard() {
       <Section title={`Orçamento ${config.categories.map((c) => c.percentage).join('/')}`} className="mb-6" action={<Link to="/regra" className="text-xs text-indigo-600">ver detalhes</Link>}>
         <div className="grid gap-4 lg:grid-cols-3">
           {groupData.map((g) => (
-            <ExpandableBudgetGroup key={g.key} label={g.label} share={g.share} ideal={g.ideal} spent={g.spent} color={g.color} categories={g.categories} noCategoryIdeal={g.noCategoryIdeal} invertColor={g.key === 'patrimônio'} />
+            <ExpandableBudgetGroup key={g.key} label={g.label} share={g.share} ideal={g.ideal} spent={g.spent} color={g.color} categories={g.categories} invertColor={g.key === 'patrimônio'} />
           ))}
         </div>
       </Section>

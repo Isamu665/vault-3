@@ -1,5 +1,10 @@
 # Notas de atualização do V.A.U.L.T.
 
+## Em preparação
+
+- Simplificamos as categorias. O percentual por categoria saiu do cadastro e da edição. Os percentuais gerais da regra de orçamento continuam disponíveis.
+- A edição de categorias agora abre em uma janela própria e preserva o cadastro em andamento.
+
 ## 6 de novembro de 2026
 
 - A confirmação de pagamento usa a data preenchida no formulário. Agora há uma ação de estorno que reabre a conta e remove a despesa vinculada.
@@ -8,4 +13,3 @@
 - O filtro de categoria afeta o detalhamento dos relatórios. Os totais gerais continuam representando todo o período.
 - O painel informa quando ainda não há meta mensal. Melhoramos nomes de controles, mensagens de acesso e confirmações de exclusão.
 - Categorias em uso podem ser arquivadas para preservar o histórico.
-
