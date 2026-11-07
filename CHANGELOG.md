@@ -2,6 +2,7 @@
 
 ## 6 de novembro de 2026
 
+- O assistente analisa descrição, notas, parcelas, vínculos e histórico para distinguir gastos fixos confirmados, possíveis recorrências e necessidades pontuais.
 - A autorização de compartilhamento com o Gemini aparece ao ativar a conversa. O Panorama abre sem esse aviso, e o acesso pode ser revogado em Privacidade do assistente.
 - Ao renomear uma categoria de despesa, o novo nome também aparece nas despesas e contas já vinculadas.
 - Simplificamos as categorias. O percentual por categoria saiu do cadastro e da edição. Os percentuais gerais da regra de orçamento continuam disponíveis.

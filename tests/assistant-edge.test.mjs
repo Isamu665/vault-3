@@ -6,7 +6,7 @@ import ts from 'typescript';
 import {accountContext,ACCOUNT_ENTITIES,validateProposal} from '../supabase/functions/assistant/account-context.mjs';
 import {providerFailure} from '../supabase/functions/assistant/provider-error.mjs';
 const alice='00000000-0000-0000-0000-000000000001';
-async function fixture({rows=[],authorized=true,answer={content:'Análise pronta',proposal:null}}={}) {
+async function fixture({rows=[],authorized=true,timeout=false,answer={content:'Análise pronta',proposal:null}}={}) {
  const trace={reads:[],inserts:[],rpcs:[],fetches:[]};let handler;
  const client={auth:{getUser:async()=>({data:{user:authorized?{id:alice}:null},error:null})},rpc:async(name,args)=>{trace.rpcs.push({name,args});return {data:name==='consume_assistant_quota'?true:{status:'applied'},error:null};},from(table){
    const filters={};let range=[0,499],insert;
@@ -16,7 +16,7 @@ async function fixture({rows=[],authorized=true,answer={content:'Análise pronta
  vm.runInNewContext(ts.transpile(source,{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}),{
    createClient:()=>client,accountContext,ACCOUNT_ENTITIES,validateProposal,providerFailure,
    Deno:{env:{get:key=>({GEMINI_API_KEY:'test-key',SUPABASE_URL:'https://example.invalid',SUPABASE_ANON_KEY:'public'}[key])},serve:fn=>{handler=fn;}},
-   fetch:async(url,options)=>{trace.fetches.push({url,body:JSON.parse(options.body)});return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(answer)}]}}]}));},
+   fetch:async(url,options)=>{trace.fetches.push({url,body:JSON.parse(options.body)});if(timeout)throw new DOMException('Timed out','TimeoutError');return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(answer)}]}}]}));},
    Response,Request,TextEncoder,AbortSignal,Date,console,crypto
  });
  return {trace,call:async body=>{const response=await handler(new Request('https://example.invalid/functions/v1/assistant',{method:'POST',headers:{authorization:'Bearer test',origin:'https://isamu665.github.io','content-type':'application/json'},body:JSON.stringify(body)}));return {status:response.status,body:await response.json()};}};
@@ -37,3 +37,10 @@ test('edge confirmation bypasses model generation and only invokes owner-checked
  const f=await fixture();assert.equal((await f.call({action:'confirm',actionId:'example'})).status,200);assert.equal(f.trace.fetches.length,0);assert.equal(f.trace.rpcs[0].name,'confirm_assistant_action');assert.equal(f.trace.rpcs[0].args.undo,false);
 });
 
+test('edge returns a retryable message when Gemini times out', async () => {
+ const f = await fixture({timeout:true});
+ const result = await f.call({message:'Analise outubro sem compras ocasionais',shareAccount:true});
+ assert.equal(result.status,504);
+ assert.match(result.body.error,/demorou/);
+ assert.equal(f.trace.inserts.length,0);
+});
