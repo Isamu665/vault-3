@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, Sparkles, Send, Loader2, ArrowUpRight, ShieldCheck, Plus, Copy, Download, Mic, MicOff } from 'lucide-react';
+import { BarChart3, Sparkles, Send, Loader2, ArrowUpRight, ShieldCheck, Plus, Copy, Download, Mic, MicOff, ListChecks, Wrench, TrendingUp, ChevronLeft, Calculator } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,18 @@ import { brl } from '@/lib/finance';
 import MessageBubble from './MessageBubble';
 import AssistantActions from './AssistantActions';
 import AccountEvidence from './AccountEvidence';
+import InvestmentComparison from './InvestmentComparison';
+import InvestmentScenarios from './InvestmentScenarios';
 import { useAuth } from '@/lib/AuthContext';
 import { consentKey, hasAssistantConsent, saveAssistantConsent } from '@/lib/assistant-consent.mjs';
 
 const QUESTIONS = ['Analise meus gastos fixos e essenciais de outubro de 2026.', 'Quais contas ainda estão pendentes?', 'Quanto falta para minhas metas?'];
+const TOOLS = [
+  { id: 'investments', title: 'Comparar investimentos', description: 'Gráfico, tabela e exportação do histórico registrado.', Icon: TrendingUp, Component: InvestmentComparison },
+  { id: 'scenarios', title: 'Simular cenários', description: 'Compare taxas e aportes com uma projeção interativa.', Icon: Calculator, Component: InvestmentScenarios },
+  { id: 'actions', title: 'Ações e histórico', description: 'Revise propostas, confirme alterações e consulte o histórico.', Icon: ListChecks, Component: AssistantActions },
+];
+
 export default function AssistantChat({ open, onClose }) {
   const { user } = useAuth();
   // Mount only while opened: requests and chart layout don't run behind a closed panel.
@@ -36,6 +44,10 @@ function AssistantContent({ onClose, userId }) {
   const dataError = incomeError || expenseError || billsError;
   const snapshot = useMemo(() => financialSnapshot(incomes, expenses, bills), [incomes, expenses, bills]);
   const [view, setView] = useState('overview'), [messages, setMessages] = useState([]);
+  const [activeTool, setActiveTool] = useState(null);
+  const openTool = id => { setActiveTool(id); setView('tools'); };
+  const tool = TOOLS.find(item => item.id === activeTool);
+  const ToolPanel = tool?.Component;
   const [input, setInput] = useState(''), [sending, setSending] = useState(false), [error, setError] = useState('');
   const readConsent = () => { try { return hasAssistantConsent(window.localStorage, userId); } catch { return false; } };
   const [share, setShare] = useState(readConsent);
@@ -43,26 +55,25 @@ function AssistantContent({ onClose, userId }) {
     try {
       saveAssistantConsent(window.localStorage, userId, granted);
       setShare(granted); setError('');
-      if (!granted) { setMessages([]); setEvidence({ rows: [], period: null }); }
+      if (!granted) { setMessages([]); }
     } catch { setShare(false); setError('Não foi possível salvar a permissão. Verifique se o navegador permite armazenamento local e tente novamente.'); }
   };
   useEffect(() => {
     const refresh = event => {
       if (event.type === 'focus' || event.key === null || event.key === consentKey(userId)) {
         const granted = readConsent(); setShare(granted);
-        if (!granted) { controller.current?.abort(); setMessages([]); setEvidence({ rows: [], period: null }); }
+        if (!granted) { controller.current?.abort(); setMessages([]); }
       }
     };
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
   }, [userId]);
-  const [evidence,setEvidence]=useState({rows:[],period:null});
   const [actionRefresh, setActionRefresh] = useState(0);
   const [recording, setRecording] = useState(false);
   const recognition = useRef(null);
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const bottom = useRef(null), controller = useRef(null);
+  const content = useRef(null), controller = useRef(null);
   useEffect(() => () => {
     controller.current?.abort();
     if (recognition.current) {
@@ -70,7 +81,10 @@ function AssistantContent({ onClose, userId }) {
       recognition.current.abort();
     }
   }, []);
-  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending]);
+  useEffect(() => {
+    const panel = content.current;
+    if (panel && view === 'chat') panel.scrollTop = panel.scrollHeight;
+  }, [view, messages, sending]);
   const dictate = () => {
     if (recording) { recognition.current?.stop(); return; }
     if (!SpeechRecognition) return;
@@ -83,27 +97,40 @@ function AssistantContent({ onClose, userId }) {
     try { engine.start(); setRecording(true); setError(''); } catch { setError('Ditado indisponível neste navegador.'); }
   };
   const send = async text => {
-    if (!text.trim() || sending) return;
+    const question = text.trim();
+    if (!question || sending || recording) return;
     if (!share || !readConsent()) { setShare(false); setError('Autorize o acesso aos dados da sua conta antes de usar o assistente.'); return; }
-    setView('chat'); setError(''); setInput(''); setSending(true);
-    setMessages(previous => [...previous, { role: 'user', content: text.trim() }]);
-    controller.current = new AbortController();
+    setView('chat'); setError(''); setSending(true);
+    setInput('');
+    setMessages(previous => [...previous, { role: 'user', content: question }]);
+    const request = new AbortController();
+    controller.current = request;
     try {
       const result = await requireBackend().functions.invoke('assistant', {
-        body: { message: text.trim(), shareAccount: true, history: messages.slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1200)})) },
-        signal: controller.current.signal,
+        body: { message: question, shareAccount: true, history: messages.slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1200)})) },
+        signal: request.signal,
       });
+      if (request.signal.aborted || !readConsent()) return;
       if (result.error) {
         let detail = '';
         try { detail = (await result.error.context?.json())?.error; } catch { /* use fallback */ }
         throw new Error(detail || 'Assistente indisponível. Confira sua conexão e tente novamente.');
       }
       if (!result.data?.content) throw new Error('A IA não retornou uma resposta.');
-      setMessages(previous => [...previous, { role: 'assistant', content: result.data.content }]);
-      setEvidence({rows:result.data.analysis || [],period:result.data.period});
+      setMessages(previous => [...previous, {
+        role: 'assistant',
+        content: result.data.content,
+        analysis: { rows: result.data.analysis || [], period: result.data.period },
+        hasProposal: Boolean(result.data.proposal),
+        investmentTool: /\b(investimentos?|investir|carteira|rentabilidade|aportes?)\b/i.test(question)
+          ? (/simul|proje|cen[aá]rio/i.test(question) ? 'scenarios' : 'investments')
+          : null,
+      }]);
       if(result.data.proposal) setActionRefresh(value=>value+1);
     } catch (e) {
-      if (e.name !== 'AbortError') { setError(e.message); setInput(text); }
+      if (!request.signal.aborted && readConsent()) {
+        setError(e.message || 'Não foi possível responder agora.');
+      }
     } finally { setSending(false); }
   };
   const exportChat = () => {
@@ -112,13 +139,13 @@ function AssistantContent({ onClose, userId }) {
     const a = document.createElement('a'); a.href = url; a.download = 'vault-conversa.txt'; a.click(); URL.revokeObjectURL(url);
   };
   return <>
-    <div className="flex justify-between gap-3 border-b px-4 py-3">
-      <div className="flex gap-2">{[['overview','Panorama',BarChart3],['chat','Conversar',Sparkles]].map(([key,label,Icon]) =>
-        <Button key={key} size="sm" variant={view === key ? 'default' : 'ghost'} aria-pressed={view === key} onClick={() => setView(key)}><Icon className="w-4 h-4 mr-2" />{label}</Button>)}</div>
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+      <div className="flex gap-2">{[['overview','Panorama',BarChart3],['chat','Conversar',Sparkles],['tools','Ferramentas',Wrench]].map(([key,label,Icon]) =>
+        <Button key={key} size="sm" variant={view === key ? 'default' : 'ghost'} aria-pressed={view === key} onClick={() => { setActiveTool(null); setView(key); }}><Icon className="w-4 h-4 mr-2" />{label}</Button>)}</div>
       <div className="flex gap-1"><Button size="icon" variant="ghost" aria-label="Exportar conversa" disabled={!messages.length} onClick={exportChat}><Download className="w-4 h-4" /></Button>
         <Button size="icon" variant="ghost" aria-label="Nova conversa" disabled={sending} onClick={() => { setMessages([]); setError(''); }}><Plus className="w-4 h-4" /></Button></div>
     </div>
-    <div className="flex-1 min-h-0 overflow-y-auto p-5">
+    <div key={view === 'tools' ? activeTool ?? view : view} ref={content} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5">
       {view === 'overview' ? <div className="space-y-5">
         <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Lançamentos em {snapshot.period}</p><h2 className="text-xl font-semibold mt-1">Seu mês, em perspectiva</h2></div>
         {loading ? <p role="status">Carregando seus números…</p> : dataError ? <p role="alert" className="text-destructive">Não foi possível carregar o panorama. Tente novamente mais tarde.</p> : <>
@@ -137,13 +164,50 @@ function AssistantContent({ onClose, userId }) {
           </section>
         </>}
         <div className="grid grid-cols-2 gap-2"><Link onClick={onClose} to="/despesas" className="rounded-xl border p-3 text-sm flex justify-between">Registrar despesa<ArrowUpRight className="w-4 h-4" /></Link><Link onClick={onClose} to="/metas" className="rounded-xl border p-3 text-sm flex justify-between">Revisar metas<ArrowUpRight className="w-4 h-4" /></Link></div>
-      </div> : <div className="flex flex-col gap-4">
+      </div> : view === 'tools' ? (
+        <div className="space-y-4">
+          {ToolPanel ? <>
+            <Button size="sm" variant="ghost" onClick={() => setActiveTool(null)}><ChevronLeft className="mr-1 h-4 w-4" />Todas as ferramentas</Button>
+            <section className="space-y-3" aria-label={tool.title}>
+              <h2 className="text-lg font-semibold">{tool.title}</h2>
+              <ToolPanel {...(tool.id === 'actions' ? { refresh: actionRefresh } : {})} />
+            </section>
+          </> : <>
+            <h2 className="text-lg font-semibold">Ferramentas do assistente</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {TOOLS.map(({ id, title, description, Icon }) => (
+                <button type="button" key={id} onClick={() => openTool(id)} className="rounded-2xl border bg-card p-4 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <Icon className="mb-3 h-5 w-5 text-primary" />
+                  <span className="block text-sm font-medium">{title}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+                </button>
+              ))}
+            </div>
+          </>}
+        </div>
+      ) : <div className="flex flex-col gap-4">
         {!messages.length && <div className="py-6"><Sparkles className="w-8 h-8 text-indigo-400 mb-3" /><h2 className="text-xl font-semibold">Vamos transformar números em próximos passos.</h2><p className="text-sm text-muted-foreground mt-2">O histórico recente desta conversa ajuda a interpretar suas perguntas. Com sua permissão, o servidor consulta sua conta a cada pergunta. A conversa é temporária; o histórico das ações permanece salvo.</p><div className="flex flex-wrap gap-2 mt-5">{QUESTIONS.map(q => <button disabled={sending || !share} key={q} className="rounded-xl border px-3 py-2 text-xs text-left hover:bg-muted disabled:opacity-50" onClick={() => send(q)}>{q}</button>)}</div></div>}
-        {messages.map((message,index) => <div key={index}><MessageBubble message={message} />{message.role === 'assistant' && <button className="mt-1 text-xs text-muted-foreground flex gap-1 items-center" onClick={() => navigator.clipboard.writeText(message.content).catch(() => setError('Não foi possível copiar. Selecione o texto manualmente.'))}><Copy className="w-3 h-3" />Copiar</button>}</div>)}
+        {messages.map((message, index) => (
+          <div key={index} className="space-y-2">
+            <MessageBubble message={message} />
+            {message.role === 'assistant' && (
+              <button className="text-xs text-muted-foreground flex gap-1 items-center" onClick={() => navigator.clipboard.writeText(message.content).catch(() => setError('Não foi possível copiar. Selecione o texto manualmente.'))}>
+                <Copy className="w-3 h-3" />Copiar
+              </button>
+            )}
+            {message.analysis?.rows.length > 0 && (
+              <details className="rounded-xl border p-3">
+                <summary className="cursor-pointer text-sm font-medium">Ver cálculos desta resposta</summary>
+                <div className="mt-3"><AccountEvidence analysis={message.analysis} /></div>
+              </details>
+            )}
+            {message.investmentTool && <Button size="sm" variant="outline" onClick={() => openTool(message.investmentTool)}>
+              {message.investmentTool === 'scenarios' ? 'Abrir simulador' : 'Abrir comparativo de investimentos'}
+            </Button>}
+            {message.hasProposal && <Button size="sm" variant="outline" onClick={() => openTool('actions')}>Revisar ações propostas</Button>}
+          </div>
+        ))}
         {sending && <p role="status" className="text-sm text-muted-foreground flex gap-2"><Loader2 className="w-4 h-4 animate-spin" />Preparando sua resposta…</p>}
-        <AccountEvidence analysis={evidence} />
-        <AssistantActions refresh={actionRefresh} />
-        <div ref={bottom} />
       </div>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     </div>
@@ -160,7 +224,11 @@ function AssistantContent({ onClose, userId }) {
           <Button type="button" size="sm" className="mt-2" disabled={sending} onClick={() => changeConsent(true)}>Autorizar e ativar conversa</Button>
         </section>
       )}
-      <div className="flex gap-2"><Button type="button" variant="ghost" size="icon" aria-label={recording ? 'Encerrar ditado' : 'Ditar com o serviço de voz do navegador'} aria-pressed={recording} title={SpeechRecognition ? 'O áudio pode ser processado pelo provedor do navegador' : 'Ditado não disponível neste navegador'} disabled={sending || !SpeechRecognition} onClick={dictate}>{recording ? <MicOff className="w-4 h-4 text-rose-500" /> : <Mic className="w-4 h-4" />}</Button><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} disabled={sending || recording} placeholder={recording ? 'Ouvindo…' : 'O que você quer entender melhor?'} className="flex-1 min-w-0 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
+      <div className="flex gap-2"><Button type="button" variant="ghost" size="icon" aria-label={recording ? 'Encerrar ditado' : 'Ditar com o serviço de voz do navegador'} aria-pressed={recording} title={SpeechRecognition ? 'O áudio pode ser processado pelo provedor do navegador' : 'Ditado não disponível neste navegador'} disabled={sending || !SpeechRecognition} onClick={dictate}>{recording ? <MicOff className="w-4 h-4 text-rose-500" /> : <Mic className="w-4 h-4" />}</Button><textarea aria-label="Sua pergunta para a IA" rows={2} maxLength={4000} value={input} onChange={e => setInput(e.target.value)} onKeyDown={event => {
+          if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
+          event.preventDefault();
+          if (share && !sending && !recording && input.trim()) event.currentTarget.form?.requestSubmit();
+        }} readOnly={sending} disabled={recording} placeholder={recording ? 'Ouvindo…' : 'O que você quer entender melhor?'} className="flex-1 min-w-0 resize-none rounded-xl border bg-background px-3 py-2 text-sm" />
         <Button type="submit" className="h-auto rounded-xl" aria-label="Enviar pergunta" disabled={sending || recording || !share || !input.trim()}>{sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</Button></div>
       <p className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2"><ShieldCheck className="w-3 h-3" />Consultas usam os dados autorizados da sua conta. Alterações exigem sua confirmação na prévia. Nenhuma movimentação bancária.</p>
       {SpeechRecognition && <p className="text-[10px] text-muted-foreground mt-1">Ditado opcional: o áudio pode ser processado pelo provedor do navegador. Não há upload de gravação pública.</p>}

@@ -1,5 +1,10 @@
 # Notas de atualização do V.A.U.L.T.
 
+## Em preparação
+
+- O chat envia com Enter, usa Shift+Enter para nova linha e limpa o campo após o envio. Os cálculos ficam junto da resposta.
+- A área Ferramentas reúne comparativos de investimentos com CSV, simulação de cenários e histórico de ações.
+
 ## 6 de novembro de 2026
 
 - O assistente analisa descrição, notas, parcelas, vínculos e histórico para distinguir gastos fixos confirmados, possíveis recorrências e necessidades pontuais.
