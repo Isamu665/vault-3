@@ -8,6 +8,8 @@
 
 **6 de novembro de 2026**
 
+- **Chat:** Enter envia a mensagem e limpa o campo. Shift+Enter quebra a linha. Os cálculos ficam junto da resposta correspondente.
+- **Ferramentas:** compare investimentos, baixe tabelas em CSV, simule cenários e revise propostas em Ações e histórico.
 - **Assistente:** a análise distingue gastos fixos confirmados, possíveis recorrências e necessidades pontuais usando o histórico e o contexto dos lançamentos.
 - **Assistente:** o Panorama abre sem o aviso do Gemini. A autorização aparece ao entrar em **Conversar** se você ainda não tiver concedido acesso.
 - **Renomear categorias:** o novo nome aparece nas despesas e contas a pagar já vinculadas, com seus valores e datas preservados.
