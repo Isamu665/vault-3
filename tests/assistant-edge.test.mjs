@@ -46,6 +46,19 @@ test('conversation mode cannot stage a proposed bookkeeping action', async () =>
  assert.equal(result.body.proposal,null);
  assert.equal(f.trace.inserts.length,0);
 });
+test('work requests a structured answer and never stages a proposal without a message', async () => {
+ const f = await fixture({answer:{proposal:{
+   operation:'create',entity:'Income',recordId:'',
+   dataJson:JSON.stringify({description:'Venda de beyblade 2',amount:80})
+ }}});
+ const result = await f.call({message:'registra uma receita de 80 reais, categorizada como venda de beyblade 2',mode:'work',shareAccount:true});
+ assert.equal(result.status,200);
+ assert.match(result.body.content,/data/);
+ assert.equal(result.body.proposal,null);
+ assert.equal(f.trace.inserts.length,0);
+ const schema=f.trace.fetches[0].body.generationConfig.responseJsonSchema;
+ assert.ok(schema.required.includes('content'));
+});
 
 test('edge returns a retryable message when Gemini times out', async () => {
  const f = await fixture({timeout:true});

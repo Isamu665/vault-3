@@ -9,6 +9,7 @@
 
 **9 de novembro de 2026**
 
+- **Modo Work:** corrigimos a resposta inválida ao preparar uma tarefa com dados incompletos.
 - **Modo Work:** peça para registrar uma despesa, receita, conta ou meta. O assistente solicita os dados que faltam e apresenta um cartão para você revisar e confirmar.
 - **Confirmação na conversa:** salve, cancele ou consulte a tarefa pelo próprio cartão. O histórico continua disponível em Ferramentas.
 - **Qualidade:** corrigimos os erros de tipagem e adicionamos essa verificação ao fluxo de validação.

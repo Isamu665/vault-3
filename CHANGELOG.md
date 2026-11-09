@@ -2,6 +2,7 @@
 
 ## 9 de novembro de 2026
 
+- A resposta do Gemini agora segue um formato obrigatório. Tarefas com resposta incompleta continuam como conversa, sem gerar uma proposta inválida.
 - O Modo Work coleta os dados de uma tarefa e exibe o cartão de confirmação na conversa. Permite preparar despesas, receitas, contas e metas.
 - Corrigimos a checagem de tipos e incluímos a validação dos componentes do assistente.
 
