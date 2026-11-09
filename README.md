@@ -6,15 +6,12 @@
 
 ## Últimas atualizações
 
-**6 de novembro de 2026**
 
-- **Chat:** Enter envia a mensagem e limpa o campo. Shift+Enter quebra a linha. Os cálculos ficam junto da resposta correspondente.
-- **Ferramentas:** compare investimentos, baixe tabelas em CSV, simule cenários e revise propostas em Ações e histórico.
-- **Assistente:** a análise distingue gastos fixos confirmados, possíveis recorrências e necessidades pontuais usando o histórico e o contexto dos lançamentos.
-- **Assistente:** o Panorama abre sem o aviso do Gemini. A autorização aparece ao entrar em **Conversar** se você ainda não tiver concedido acesso.
-- **Renomear categorias:** o novo nome aparece nas despesas e contas a pagar já vinculadas, com seus valores e datas preservados.
-- **Categorias:** clique no lápis para abrir a janela de edição. O cadastro em andamento fica preservado.
-- **Orçamento:** removemos o campo “% do grupo” das categorias. Os percentuais gerais da regra de orçamento continuam configuráveis.
+**9 de novembro de 2026**
+
+- **Modo Work:** peça para registrar uma despesa, receita, conta ou meta. O assistente solicita os dados que faltam e apresenta um cartão para você revisar e confirmar.
+- **Confirmação na conversa:** salve, cancele ou consulte a tarefa pelo próprio cartão. O histórico continua disponível em Ferramentas.
+- **Qualidade:** corrigimos os erros de tipagem e adicionamos essa verificação ao fluxo de validação.
 
 Para consultar todas as mudanças, clique em **[Ver histórico completo de atualizações](CHANGELOG.md)**. Você também pode abrir o arquivo `CHANGELOG.md` na lista de arquivos do repositório.
 

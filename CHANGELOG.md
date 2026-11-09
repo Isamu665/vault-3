@@ -1,6 +1,6 @@
 # Notas de atualização do V.A.U.L.T.
 
-## Em preparação
+## 9 de novembro de 2026
 
 - O Modo Work coleta os dados de uma tarefa e exibe o cartão de confirmação na conversa. Permite preparar despesas, receitas, contas e metas.
 - Corrigimos a checagem de tipos e incluímos a validação dos componentes do assistente.
