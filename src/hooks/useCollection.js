@@ -17,7 +17,7 @@ export function useRecordsRealtime(userId) {
     const channel = supabase.channel('records:' + userId + ':' + crypto.randomUUID())
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'vault_records', filter: 'user_id=eq.' + userId,
-      }, payload => invalidate(payload.new?.entity || payload.old?.entity)).subscribe();
+      }, payload => invalidate(('entity' in payload.new && payload.new.entity) || ('entity' in payload.old && payload.old.entity) || undefined)).subscribe();
     return () => {
       window.removeEventListener(DATA_CHANGED, onChange);
       supabase.removeChannel(channel);

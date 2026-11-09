@@ -29,7 +29,6 @@ export default function DebtDialog({ open, onOpenChange, debt, onSaved }) {
       interest_rate: Number(form.interest_rate) || 0,
       cet: Number(form.cet) || 0,
     };
-    delete payload.id;
     if (debt?.id) await vault.entities.Debt.update(debt.id, payload);
     else await vault.entities.Debt.create(payload);
     setSaving(false);

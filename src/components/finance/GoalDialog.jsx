@@ -19,7 +19,6 @@ export default function GoalDialog({ open, onOpenChange, goal, onSaved }) {
     setSaving(true);
     const payload = { ...form, target_amount: Number(form.target_amount) || 0, current_amount: Number(form.current_amount) || 0 };
     if (!payload.deadline) delete payload.deadline;
-    delete payload.id;
     if (goal?.id) await vault.entities.Goal.update(goal.id, payload);
     else await vault.entities.Goal.create(payload);
     setSaving(false);

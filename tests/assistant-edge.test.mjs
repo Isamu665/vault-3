@@ -36,6 +36,16 @@ test('edge paginates owned rows, computes complete totals and stages proposals w
 test('edge confirmation bypasses model generation and only invokes owner-checked RPC',async()=>{
  const f=await fixture();assert.equal((await f.call({action:'confirm',actionId:'example'})).status,200);assert.equal(f.trace.fetches.length,0);assert.equal(f.trace.rpcs[0].name,'confirm_assistant_action');assert.equal(f.trace.rpcs[0].args.undo,false);
 });
+test('conversation mode cannot stage a proposed bookkeeping action', async () => {
+ const f = await fixture({answer:{content:'Vamos revisar.',proposal:{
+   operation:'create',entity:'Income',recordId:'',
+   dataJson:JSON.stringify({description:'Salário',amount:100,date:'2026-10-01'})
+ }}});
+ const result = await f.call({message:'Quero conversar',mode:'chat',shareAccount:true});
+ assert.equal(result.status,200);
+ assert.equal(result.body.proposal,null);
+ assert.equal(f.trace.inserts.length,0);
+});
 
 test('edge returns a retryable message when Gemini times out', async () => {
  const f = await fixture({timeout:true});

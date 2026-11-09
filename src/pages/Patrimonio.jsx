@@ -72,11 +72,11 @@ export default function Patrimonio() {
   const reserveName = (id) => reserves.find((r) => r.id === id)?.name || '—';
 
   const showReserveHistory = (r) => {
-    const txs = reserveTxs.filter((tx) => tx.reserve_id === r.id).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const txs = reserveTxs.filter((tx) => tx.reserve_id === r.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setHistoryModal({ open: true, title: `Histórico: ${r.name}`, transactions: txs, type: 'reserve' });
   };
   const showInvestmentHistory = (inv) => {
-    const txs = investmentTxs.filter((tx) => tx.investment_id === inv.id).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const txs = investmentTxs.filter((tx) => tx.investment_id === inv.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setHistoryModal({ open: true, title: `Histórico: ${inv.name}`, transactions: txs, type: 'investment' });
   };
 

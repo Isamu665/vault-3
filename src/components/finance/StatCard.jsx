@@ -6,7 +6,7 @@ import { brl } from '@/lib/finance';
 
 const EASE = [0.22, 1, 0.36, 1];
 
-export default function StatCard({ label, value, sub, icon: Icon, tone = 'default', format, delay = 0 }) {
+export default function StatCard({ label, value, sub = undefined, icon: Icon = undefined, tone = 'default', format = undefined, delay = 0 }) {
   const { ready } = useAppReady();
   const isNumeric = typeof value === 'number';
   const animated = useCountUp(isNumeric ? value : 0, 1000, Math.round(delay * 1000));

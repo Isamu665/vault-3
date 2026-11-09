@@ -6,7 +6,7 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 import { cn } from "@/lib/utils"
 import { useAppReady } from "@/lib/appReady"
 
-const Progress = React.forwardRef(({ className, value, ...props }, ref) => {
+const Progress = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>} props @param {React.ForwardedRef<React.ElementRef<typeof ProgressPrimitive.Root>>} ref */ ({ className, value, ...props }, ref) => {
   const { ready } = useAppReady();
   const [displayValue, setDisplayValue] = React.useState(0);
   React.useEffect(() => {

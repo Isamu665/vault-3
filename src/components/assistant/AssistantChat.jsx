@@ -16,6 +16,7 @@ import InvestmentScenarios from './InvestmentScenarios';
 import { useAuth } from '@/lib/AuthContext';
 import { consentKey, hasAssistantConsent, saveAssistantConsent } from '@/lib/assistant-consent.mjs';
 
+const WORK_QUESTIONS = ['Quero registrar uma despesa.', 'Quero anotar uma receita.', 'Quero criar uma conta a pagar.', 'Quero definir uma meta.'];
 const QUESTIONS = ['Analise meus gastos fixos e essenciais de outubro de 2026.', 'Quais contas ainda estão pendentes?', 'Quanto falta para minhas metas?'];
 const TOOLS = [
   { id: 'investments', title: 'Comparar investimentos', description: 'Gráfico, tabela e exportação do histórico registrado.', Icon: TrendingUp, Component: InvestmentComparison },
@@ -48,6 +49,7 @@ function AssistantContent({ onClose, userId }) {
   const openTool = id => { setActiveTool(id); setView('tools'); };
   const tool = TOOLS.find(item => item.id === activeTool);
   const ToolPanel = tool?.Component;
+  const [workMode, setWorkMode] = useState(true);
   const [input, setInput] = useState(''), [sending, setSending] = useState(false), [error, setError] = useState('');
   const readConsent = () => { try { return hasAssistantConsent(window.localStorage, userId); } catch { return false; } };
   const [share, setShare] = useState(readConsent);
@@ -107,7 +109,7 @@ function AssistantContent({ onClose, userId }) {
     controller.current = request;
     try {
       const result = await requireBackend().functions.invoke('assistant', {
-        body: { message: question, shareAccount: true, history: messages.slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1200)})) },
+        body: { message: question, mode: workMode ? 'work' : 'chat', shareAccount: true, history: messages.slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1200)})) },
         signal: request.signal,
       });
       if (request.signal.aborted || !readConsent()) return;
@@ -122,6 +124,7 @@ function AssistantContent({ onClose, userId }) {
         content: result.data.content,
         analysis: { rows: result.data.analysis || [], period: result.data.period },
         hasProposal: Boolean(result.data.proposal),
+        actionId: result.data.proposal?.id,
         investmentTool: /\b(investimentos?|investir|carteira|rentabilidade|aportes?)\b/i.test(question)
           ? (/simul|proje|cen[aá]rio/i.test(question) ? 'scenarios' : 'investments')
           : null,
@@ -140,7 +143,7 @@ function AssistantContent({ onClose, userId }) {
   };
   return <>
     <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-      <div className="flex gap-2">{[['overview','Panorama',BarChart3],['chat','Conversar',Sparkles],['tools','Ferramentas',Wrench]].map(([key,label,Icon]) =>
+      <div className="flex gap-2">{[{key:'overview',label:'Panorama',Icon:BarChart3},{key:'chat',label:'Conversar',Icon:Sparkles},{key:'tools',label:'Ferramentas',Icon:Wrench}].map(({key,label,Icon}) =>
         <Button key={key} size="sm" variant={view === key ? 'default' : 'ghost'} aria-pressed={view === key} onClick={() => { setActiveTool(null); setView(key); }}><Icon className="w-4 h-4 mr-2" />{label}</Button>)}</div>
       <div className="flex gap-1"><Button size="icon" variant="ghost" aria-label="Exportar conversa" disabled={!messages.length} onClick={exportChat}><Download className="w-4 h-4" /></Button>
         <Button size="icon" variant="ghost" aria-label="Nova conversa" disabled={sending} onClick={() => { setMessages([]); setError(''); }}><Plus className="w-4 h-4" /></Button></div>
@@ -186,7 +189,7 @@ function AssistantContent({ onClose, userId }) {
           </>}
         </div>
       ) : <div className="flex flex-col gap-4">
-        {!messages.length && <div className="py-6"><Sparkles className="w-8 h-8 text-indigo-400 mb-3" /><h2 className="text-xl font-semibold">Vamos transformar números em próximos passos.</h2><p className="text-sm text-muted-foreground mt-2">O histórico recente desta conversa ajuda a interpretar suas perguntas. Com sua permissão, o servidor consulta sua conta a cada pergunta. A conversa é temporária; o histórico das ações permanece salvo.</p><div className="flex flex-wrap gap-2 mt-5">{QUESTIONS.map(q => <button disabled={sending || !share} key={q} className="rounded-xl border px-3 py-2 text-xs text-left hover:bg-muted disabled:opacity-50" onClick={() => send(q)}>{q}</button>)}</div></div>}
+        {!messages.length && <div className="py-6"><Sparkles className="w-8 h-8 text-indigo-400 mb-3" /><h2 className="text-xl font-semibold">Converse, organize e acompanhe suas finanças.</h2><p className="text-sm text-muted-foreground mt-2">O histórico recente desta conversa ajuda a interpretar suas perguntas. Com sua permissão, o servidor consulta sua conta a cada pergunta. A conversa é temporária; o histórico das ações permanece salvo.</p><div className="flex flex-wrap gap-2 mt-5">{(workMode ? WORK_QUESTIONS : QUESTIONS).map(q => <button disabled={sending || !share} key={q} className="rounded-xl border px-3 py-2 text-xs text-left hover:bg-muted disabled:opacity-50" onClick={() => send(q)}>{q}</button>)}</div></div>}
         {messages.map((message, index) => (
           <div key={index} className="space-y-2">
             <MessageBubble message={message} />
@@ -204,13 +207,14 @@ function AssistantContent({ onClose, userId }) {
             {message.investmentTool && <Button size="sm" variant="outline" onClick={() => openTool(message.investmentTool)}>
               {message.investmentTool === 'scenarios' ? 'Abrir simulador' : 'Abrir comparativo de investimentos'}
             </Button>}
-            {message.hasProposal && <Button size="sm" variant="outline" onClick={() => openTool('actions')}>Revisar ações propostas</Button>}
+            {message.actionId && <AssistantActions actionId={message.actionId} refresh={actionRefresh} />}
           </div>
         ))}
         {sending && <p role="status" className="text-sm text-muted-foreground flex gap-2"><Loader2 className="w-4 h-4 animate-spin" />Preparando sua resposta…</p>}
       </div>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     </div>
+    {view === 'chat' && <label className="shrink-0 border-t px-4 py-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={workMode} disabled={sending} onChange={event => setWorkMode(event.target.checked)} />Modo Work · preparar tarefas com confirmação</label>}
     {view === 'chat' && <form className="border-t p-4 bg-muted/20" onSubmit={e => { e.preventDefault(); send(input); }}>
       {share ? (
         <details className="mb-3 text-xs text-muted-foreground">

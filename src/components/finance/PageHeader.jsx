@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function PageHeader({ title, subtitle, children }) {
+export default function PageHeader({ title, subtitle = undefined, children = undefined }) {
   return (
     <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-end lg:justify-between">
       <div>

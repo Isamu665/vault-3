@@ -39,7 +39,6 @@ export default function ExpenseDialog({ open, onOpenChange, expense, categories,
       installments_total: form.installment ? Number(form.installments_total) || null : null,
       installment_current: form.installment ? Number(form.installment_current) || null : null,
     };
-    delete payload.id;
     if (expense?.id) await vault.entities.Expense.update(expense.id, payload);
     else await vault.entities.Expense.create(payload);
     setSaving(false);

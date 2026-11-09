@@ -20,7 +20,6 @@ export default function BillDialog({ open, onOpenChange, bill, onSaved, categori
   const save = async () => {
     setSaving(true);
     const payload = { ...form, amount: Number(form.amount) };
-    delete payload.id;
     if (bill?.id) await vault.entities.Bill.update(bill.id, payload);
     else await vault.entities.Bill.create(payload);
     setSaving(false);

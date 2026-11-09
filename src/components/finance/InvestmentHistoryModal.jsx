@@ -6,7 +6,7 @@ import { brl } from '@/lib/finance';
 import { investmentTotal } from '@/lib/patrimony';
 
 export default function InvestmentHistoryModal({ open, onOpenChange, investment, updates, investmentTxs }) {
-  const sorted = [...updates].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sorted = [...updates].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const invested = investment ? investmentTotal(investmentTxs, investment.id) : 0;
   const current = investment?.current_amount || invested;
   const profit = current - invested;

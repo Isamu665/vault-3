@@ -1,5 +1,10 @@
 # Notas de atualização do V.A.U.L.T.
 
+## Em preparação
+
+- O Modo Work coleta os dados de uma tarefa e exibe o cartão de confirmação na conversa. Permite preparar despesas, receitas, contas e metas.
+- Corrigimos a checagem de tipos e incluímos a validação dos componentes do assistente.
+
 ## 6 de novembro de 2026
 
 - O chat envia com Enter, usa Shift+Enter para nova linha e limpa o campo após o envio. Os cálculos ficam junto da resposta.
