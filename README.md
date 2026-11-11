@@ -6,13 +6,9 @@
 
 ## Últimas atualizações
 
+**11 de novembro de 2026**
 
-**9 de novembro de 2026**
-
-- **Modo Work:** corrigimos a resposta inválida ao preparar uma tarefa com dados incompletos.
-- **Modo Work:** peça para registrar uma despesa, receita, conta ou meta. O assistente solicita os dados que faltam e apresenta um cartão para você revisar e confirmar.
-- **Confirmação na conversa:** salve, cancele ou consulte a tarefa pelo próprio cartão. O histórico continua disponível em Ferramentas.
-- **Qualidade:** corrigimos os erros de tipagem e adicionamos essa verificação ao fluxo de validação.
+- **Despesas recorrentes:** configure o dia de repetição mensal para acompanhar os próximos gastos. Ative o lançamento automático por despesa para registrar o valor na data programada.
 
 Para consultar todas as mudanças, clique em **[Ver histórico completo de atualizações](CHANGELOG.md)**. Você também pode abrir o arquivo `CHANGELOG.md` na lista de arquivos do repositório.
 

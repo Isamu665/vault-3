@@ -1,6 +1,6 @@
 # Notas de atualização do V.A.U.L.T.
 
-## Em preparação
+## 11 de novembro de 2026
 
 - Despesas recorrentes podem ser previstas mensalmente ou lançadas automaticamente no dia configurado. A opção automática é ativada por despesa.
 
