@@ -34,13 +34,14 @@ function validISO(s) {
   const date = new Date(s + 'T00:00:00Z');
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === s;
 }
-export function incomeForecasts(incomes, year, month) {
+export function incomeForecasts(incomes, year, month, scheduleField = 'income_schedule') {
   const received = new Set(incomes.filter(r => r.recurrence_source && r.recurrence_due)
     .map(r => `${r.recurrence_source}:${r.recurrence_due.slice(0, 7)}`));
   return incomes.flatMap(source => {
-    const s = source.income_schedule;
+    const s = source[scheduleField];
     if (!validIncomeSchedule(s) || !s.active) return [];
     const due = monthlyDate(year, month, s.day);
+    if (scheduleField === 'expense_schedule' && source.expense_auto_month === due.slice(0, 7)) return [];
     if (due < s.start || s.end && due > s.end || received.has(`${source.id}:${due.slice(0, 7)}`)) return [];
     return [{ source, due, ...s }];
   }).sort((a, b) => a.due.localeCompare(b.due));

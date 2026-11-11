@@ -30,17 +30,18 @@ export const ENTITY_SPECS = [
     fields: [
       'description', 'category', 'amount', 'date', 'payment_method', 'need_type',
       'recurring', 'installment', 'installments_total', 'installment_current',
-      'investment_id', 'reserve_id', 'notes',
+      'investment_id', 'reserve_id', 'expense_schedule', 'recurrence_source', 'recurrence_due', 'expense_auto_month', 'notes',
     ],
     required: ['description', 'amount', 'date'],
     numbers: ['amount', 'installments_total', 'installment_current'],
     booleans: ['recurring', 'installment'],
-    dates: ['date'],
+    dates: ['date', 'recurrence_due'],
     enums: {
       payment_method: ['dinheiro', 'pix', 'débito', 'crédito', 'boleto', 'transferência'],
       need_type: ['necessidade', 'desejo', 'patrimônio', 'investimento'],
     },
-    links: { investment_id: 'Investment', reserve_id: 'Reserve' },
+    links: { investment_id: 'Investment', reserve_id: 'Reserve', recurrence_source: 'Expense' },
+    json: ['expense_schedule'],
   },
   {
     name: 'Category',

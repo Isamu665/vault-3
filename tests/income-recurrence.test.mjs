@@ -71,6 +71,27 @@ test('confirm recurring income validates ownership, due day, consent snapshot, a
     await db.query('select public.delete_income_with_recurrence($1)',[source.id]);
     const remaining=(await db.query("select data from public.vault_records where entity='Income'")).rows;
     assert.equal(remaining.length,1);assert.equal(remaining[0].data.amount,2999.99);assert.equal(remaining[0].data.recurrence_source,undefined);
-    await db.exec('reset role;set role anon;');await assert.rejects(confirm());
+    const expenseSchedule = { ...schedule, amount: 22, description: 'Assinatura', category: 'Serviços', automatic: true };
+    const expense = (await db.query("insert into public.vault_records(entity,data) values('Expense',$1) returning id", [
+      JSON.stringify({ description:'Assinatura', amount:22, date:'2020-01-31', payment_method:'pix', expense_schedule:expenseSchedule }),
+    ])).rows[0];
+    await assert.rejects(db.query("select vault_private.book_recurring_expenses('2020-02-29')"));
+    await db.exec('reset role');
+    const book = async day => (await db.query('select vault_private.book_recurring_expenses($1) as count',[day])).rows[0].count;
+    assert.equal(await book('2020-02-28'),0);
+    assert.equal(await book('2020-02-29'),1);
+    assert.equal(await book('2020-02-29'),0);
+    const payment = (await db.query("select id, user_id, data from public.vault_records where entity='Expense' and data->>'recurrence_source'=$1",[expense.id])).rows[0];
+    assert.equal(payment.user_id,alice);
+    assert.equal(payment.data.date,'2020-02-29');
+    assert.equal(payment.data.amount,22);
+    assert.equal(payment.data.payment_method,'pix');
+    await db.exec(`set role authenticated;set request.jwt.claim.sub='${alice}';`);
+    const duplicate = await db.query("select public.confirm_recurring_expense($1,'2020-02-29',22,'2020-02-29',$2) as result",[expense.id,JSON.stringify(expenseSchedule)]);
+    assert.equal(duplicate.rows[0].result.alreadyReceived,true);
+    await db.query('select public.delete_expense_with_recurrence($1)',[payment.id]);
+    await db.exec('reset role');
+    assert.equal(await book('2020-02-29'),0,'a deleted automatic entry stays deleted');
+    await db.exec('set role anon');await assert.rejects(confirm());
   } finally {await db.close();}
 });

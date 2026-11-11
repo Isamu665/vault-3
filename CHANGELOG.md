@@ -1,5 +1,9 @@
 # Notas de atualização do V.A.U.L.T.
 
+## Em preparação
+
+- Despesas recorrentes podem ser previstas mensalmente ou lançadas automaticamente no dia configurado. A opção automática é ativada por despesa.
+
 ## 9 de novembro de 2026
 
 - A resposta do Gemini agora segue um formato obrigatório. Tarefas com resposta incompleta continuam como conversa, sem gerar uma proposta inválida.

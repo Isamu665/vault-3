@@ -5,6 +5,7 @@ import useCollection from '@/hooks/useCollection';
 import PageHeader from '@/components/finance/PageHeader';
 import MonthPicker from '@/components/finance/MonthPicker';
 import EmptyState from '@/components/finance/EmptyState';
+import RecurringIncomes from '@/components/finance/RecurringIncomes';
 import ExpenseDialog from '@/components/finance/ExpenseDialog';
 import TransactionDetailDialog from '@/components/finance/TransactionDetailDialog';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ export default function Expenses() {
         </Button>
       </PageHeader>
 
+      <RecurringIncomes expense incomes={items} year={year} month={month} onSaved={reload} categories={selectableCategories.map(c => c.name)} />
       <div className="flex flex-wrap gap-3 mb-4">
         <Input placeholder="Pesquisar despesas..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm rounded-xl" />
         <Select value={cat} onValueChange={setCat}>

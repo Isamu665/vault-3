@@ -36,6 +36,9 @@ export default function ExpenseDialog({ open, onOpenChange, expense, categories,
     const payload = {
       ...form,
       amount: Number(form.amount),
+      ...(expense?.expense_schedule ? {
+        expense_schedule: { ...expense.expense_schedule, active: form.recurring && !form.installment },
+      } : {}),
       installments_total: form.installment ? Number(form.installments_total) || null : null,
       installment_current: form.installment ? Number(form.installment_current) || null : null,
     };
