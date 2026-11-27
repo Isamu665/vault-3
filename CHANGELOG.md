@@ -1,6 +1,8 @@
 # Notas de atualização do V.A.U.L.T.
 
-## Em preparação
+## 27 de novembro de 2026
+
+- O Modo Work reconhece formas de pagamento como “Pix” independentemente de maiúsculas ou minúsculas ao preparar despesas.
 
 - A sincronização envia avisos privados por conta. Backups de usuários diferentes podem ter os mesmos identificadores.
 - O banco protege a baixa e o estorno de contas e valida valores financeiros. O histórico antigo do Modo Work continua disponível para consulta. Propostas anteriores precisam ser geradas novamente para confirmação.
