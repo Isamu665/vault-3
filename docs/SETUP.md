@@ -5,7 +5,7 @@
 Projeto: `mqtqwxxlaaxiazghjkcu`.
 URL: https://mqtqwxxlaaxiazghjkcu.supabase.co
 
-As migrações de `supabase/migrations` e as funções `assistant` e `market-indicators` foram publicadas neste projeto. Não rode novamente o SQL inicial em um banco que já tenha essas tabelas.
+Confira no painel do projeto quais migrações e versões das Edge Functions estão aplicadas. Não rode novamente o SQL inicial em um banco que já tenha essas tabelas.
 
 Em um projeto novo, use o SQL Editor para aplicar as migrações em ordem ou o Supabase CLI. Para as funções, publique os arquivos de `supabase/functions/<nome>/index.ts`. A verificação automática de JWT do gateway fica desativada porque cada função valida o JWT no próprio corpo, com `auth.getUser`. Não remova essa validação.
 
@@ -84,6 +84,10 @@ URL e chave pública do Supabase estão no workflow, com possibilidade de sobres
 Se o Pages estiver configurado para publicar da branch `vault-pages-release`, um merge em `main` só gera o artefato. Publique o artefato verificado na branch de release e confira `/vault-3/version.json` para identificar o commit de origem. Para voltar de versão, publique novamente o último artefato validado e confira a compatibilidade com as migrações. Atualize o CHANGELOG após confirmar a versão no site.
 
 Não há publicação automática de funções Supabase pelo GitHub. Para a entrega de integridade financeira, aplique a migração em homologação, teste baixa, estorno, movimentações e importação e valide a função `assistant`. Na publicação, aplique a migração e implante a função antes da interface que chama as novas operações. O workflow do Pages verifica e publica somente a interface.
+
+Para a atualização de segurança de 27 de novembro, valide primeiro em um projeto Supabase de homologação. Aplique as três migrações de 27 de novembro em ordem, implante a Edge Function do assistente e depois a interface. A criação de propostas usa a variável de servidor SUPABASE_SERVICE_ROLE_KEY fornecida pelo Supabase. As consultas financeiras continuam usando o token da pessoa conectada. Confira se o Realtime admite canais privados e verifique sincronização e exclusão entre duas sessões do mesmo usuário e uma sessão de outro usuário.
+
+No painel Authentication, confira confirmação de e-mail, validade dos links e limites de verificação. Os valores locais estão em supabase/config.toml. Migrações SQL de aplicação não configuram o Auth hospedado. Revise também as políticas de Storage, os schemas expostos pela Data API e os alertas de secret scanning do GitHub.
 
 ## 6. Instalar no celular
 

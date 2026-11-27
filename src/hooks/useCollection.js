@@ -14,10 +14,9 @@ export function useRecordsRealtime(userId) {
     });
     const onChange = event => invalidate(event.detail);
     window.addEventListener(DATA_CHANGED, onChange);
-    const channel = supabase.channel('records:' + userId + ':' + crypto.randomUUID())
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'vault_records', filter: 'user_id=eq.' + userId,
-      }, payload => invalidate(('entity' in payload.new && payload.new.entity) || ('entity' in payload.old && payload.old.entity) || undefined)).subscribe();
+    const channel = supabase.channel('vault-records:' + userId, { config: { private: true } })
+      .on('broadcast', { event: 'changed' }, ({ payload }) => invalidate(payload?.entity))
+      .subscribe(status => { if (status === 'SUBSCRIBED') invalidate(undefined); });
     return () => {
       window.removeEventListener(DATA_CHANGED, onChange);
       supabase.removeChannel(channel);

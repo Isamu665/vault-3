@@ -12,19 +12,31 @@ const blank = () => ({ description: '', amount: '', due_date: localDate(), categ
 export default function BillDialog({ open, onOpenChange, bill, onSaved, categories = [], categoriesLoading, categoriesError }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setForm(bill ? { ...blank(), ...bill } : blank()); }, [bill, open]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setError('');
+    setForm(bill ? { ...blank(), ...bill } : blank());
+  }, [bill, open]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const selectedCategory = categories.find((c) => c.name === form.category || c.id === form.category);
   const legacyCategory = form.category && !selectedCategory;
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
-    const payload = { ...form, amount: Number(form.amount) };
-    if (bill?.id) await vault.entities.Bill.update(bill.id, payload);
-    else await vault.entities.Bill.create(payload);
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
+    setError('');
+    const { description, amount, due_date, category } = form;
+    const payload = { description, amount: Number(amount), due_date, category };
+    try {
+      if (bill?.id) await vault.entities.Bill.update(bill.id, payload);
+      else await vault.entities.Bill.create({ ...payload, status: 'pendente' });
+      onOpenChange(false);
+      onSaved();
+    } catch (saveError) {
+      setError(saveError?.message || 'Não foi possível salvar a conta.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -51,6 +63,7 @@ export default function BillDialog({ open, onOpenChange, bill, onSaved, categori
             {categoriesError && <p role="alert" className="text-destructive text-sm mt-1.5">Não foi possível carregar suas categorias. Tente novamente.</p>}
           </div>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={save} disabled={saving || !form.description || !form.amount}>{saving ? 'Salvando...' : 'Salvar'}</Button>

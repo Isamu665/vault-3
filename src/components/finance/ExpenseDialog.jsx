@@ -24,15 +24,19 @@ const NEEDS = [
 export default function ExpenseDialog({ open, onOpenChange, expense, categories, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    setError('');
     setForm(expense ? { ...blank(), ...expense } : { ...blank(), category: categories[0]?.name || '' });
   }, [expense, open, categories]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
+    setError('');
     const payload = {
       ...form,
       amount: Number(form.amount),
@@ -42,11 +46,16 @@ export default function ExpenseDialog({ open, onOpenChange, expense, categories,
       installments_total: form.installment ? Number(form.installments_total) || null : null,
       installment_current: form.installment ? Number(form.installment_current) || null : null,
     };
-    if (expense?.id) await vault.entities.Expense.update(expense.id, payload);
-    else await vault.entities.Expense.create(payload);
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
+    try {
+      if (expense?.id) await vault.entities.Expense.update(expense.id, payload);
+      else await vault.entities.Expense.create(payload);
+      onOpenChange(false);
+      onSaved();
+    } catch (saveError) {
+      setError(saveError?.message || 'Não foi possível salvar a despesa.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -104,6 +113,7 @@ export default function ExpenseDialog({ open, onOpenChange, expense, categories,
           </div>
           <div><Label>Observações</Label><Textarea rows={2} value={form.notes || ''} onChange={(e) => set('notes', e.target.value)} /></div>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={save} disabled={saving || !form.description || !form.amount}>{saving ? 'Salvando...' : 'Salvar'}</Button>

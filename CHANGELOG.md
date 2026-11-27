@@ -1,5 +1,11 @@
 # Notas de atualização do V.A.U.L.T.
 
+## Em preparação
+
+- A sincronização envia avisos privados por conta. Backups de usuários diferentes podem ter os mesmos identificadores.
+- O banco protege a baixa e o estorno de contas e valida valores financeiros. O histórico antigo do Modo Work continua disponível para consulta. Propostas anteriores precisam ser geradas novamente para confirmação.
+- Respostas do assistente bloqueiam imagens externas. O build valida a chave pública do Supabase e verifica se o pacote contém credenciais conhecidas.
+
 ## 11 de novembro de 2026
 
 - Despesas recorrentes podem ser previstas mensalmente ou lançadas automaticamente no dia configurado. A opção automática é ativada por despesa.

@@ -6,3 +6,10 @@ verify_jwt = false
 
 [functions.market-indicators]
 verify_jwt = false
+
+[auth.email]
+enable_confirmations = true
+otp_expiry = 3600
+
+[auth.rate_limit]
+token_verifications = 30

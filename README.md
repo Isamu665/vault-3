@@ -6,6 +6,8 @@
 
 ## Últimas atualizações
 
+**Em preparação** — A atualização de segurança protege propostas do Modo Work e a baixa de contas, e restringe as notificações de alterações ao titular.
+
 **11 de novembro de 2026**
 
 - **Despesas recorrentes:** configure o dia de repetição mensal para acompanhar os próximos gastos. Ative o lançamento automático por despesa para registrar o valor na data programada.
