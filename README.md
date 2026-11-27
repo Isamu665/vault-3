@@ -6,6 +6,8 @@
 
 ## Últimas atualizações
 
+**27 de novembro de 2026** — O Modo Work reconhece “Pix” ao preparar despesas. A atualização protege as propostas e a baixa de contas e restringe as notificações de alterações ao titular.
+
 **11 de novembro de 2026**
 
 - **Despesas recorrentes:** configure o dia de repetição mensal para acompanhar os próximos gastos. Ative o lançamento automático por despesa para registrar o valor na data programada.

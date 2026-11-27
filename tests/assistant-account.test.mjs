@@ -1,5 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {accountContext,validateProposal} from '../supabase/functions/assistant/account-context.mjs';
 const row=(id,entity,data)=>({id,entity,data});
+test('Work accepts Pix capitalization and rejects unsupported payment methods', () => {
+  const expense = { description: 'Café', date: '2026-11-27', amount: 15 };
+  const prepare = payment_method => validateProposal({ operation: 'create', entity: 'Expense', data: { ...expense, payment_method } }, []);
+  assert.equal(prepare(' Pix ').after_data.payment_method, 'pix');
+  assert.throws(() => prepare('outro sistema'));
+});
 test('observed repetition is separate from marked recurrence and ignores installments and later months', () => {
  const expenses = [
    row('sep','Expense',{description:'Fatura TIM',category:'Telefone',amount:30,date:'2026-09-10'}),

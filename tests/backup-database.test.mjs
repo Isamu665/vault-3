@@ -34,8 +34,8 @@ test('backup RPC validates all rows, rolls back invalid links and protects ident
     await db.exec(`set request.jwt.claim.sub='${bob}';`);
     assert.equal(await count(),0);
     await assert.rejects(run([{...investment,id:'20000000-0000-0000-0000-000000000002'}],bob),/Missing owned link/);
-    await assert.rejects(run([income],bob),/Import ID unavailable/);
-    assert.equal(await count(),0);
+    assert.equal((await run([income],bob)).rows[0].result.addedTotal,1);
+    assert.equal(await count(),1);
     const own={...income,id:'20000000-0000-0000-0000-000000000003'};
     assert.equal((await run([own],bob)).rows[0].result.addedTotal,1);
     await db.exec('reset role; set role anon;');

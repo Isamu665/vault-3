@@ -53,8 +53,14 @@ export function validateProposal(proposal, records) {
   const current=proposal.operation==='update' ? records.find(r=>r.id===proposal.recordId && r.entity===proposal.entity) : null;
   if(proposal.operation==='update' && !current) throw Error('Registro não encontrado nesta conta.');
   const data={...(current?.data || {}),...proposal.data};
+  for (const [field, options] of Object.entries(SPEC_BY_NAME[proposal.entity].enums)) {
+    const value = proposal.data[field];
+    if (typeof value !== 'string') continue;
+    const canonical = options.find(option => option.localeCompare(value.trim(), 'pt-BR', { sensitivity: 'base' }) === 0);
+    if (canonical) data[field] = canonical;
+  }
   const result=validateBackup({format:'vault-backup',version:1,exportedAt:new Date().toISOString(),entities:{[proposal.entity]:[{...data,id:current?.id || 'draft'}]}});
   if(result.errorCount) throw Error(result.errors[0]);
-  return {operation:proposal.operation,entity:proposal.entity,record_id:current?.id || crypto.randomUUID(),before_data:current?.data || null,after_data:{...(current?.data || {}),...proposal.data}};
+  return {operation:proposal.operation,entity:proposal.entity,record_id:current?.id || crypto.randomUUID(),before_data:current?.data || null,after_data:data};
 }
 

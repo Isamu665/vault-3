@@ -9,11 +9,52 @@ test('bill payment uses confirmed details, is atomic, idempotent and owner isola
  create function auth.uid() returns uuid language sql stable as 'select nullif(current_setting(''request.jwt.claim.sub'', true), '''')::uuid';
  grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
  insert into auth.users values ('${alice}'),('${bob}');`);
- const dir=new URL('../supabase/migrations/',import.meta.url);for(const file of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,dir),'utf8'));
+ const legacyIncome={
+   id:'00000000-0000-0000-0000-000000000018',entity:'Income',
+   data:{description:'Receita antiga',amount:10.125,date:'2026-10-05'},
+ };
+ const legacyReserveId='00000000-0000-0000-0000-000000000019';
+ const dir=new URL('../supabase/migrations/',import.meta.url);
+ for(const file of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort()){
+   if(file==='20261127000200_financial_security.sql'){
+     await db.query('insert into public.vault_records(id,user_id,entity,data) values ($1,$2,$3,$4)',[
+       legacyIncome.id,alice,legacyIncome.entity,JSON.stringify(legacyIncome.data),
+     ]);
+     await db.query("insert into public.vault_records(id,user_id,entity,data) values ($1,$2,'Reserve','{\"name\":\"Reserva antiga\"}')",[
+       legacyReserveId,alice,
+     ]);
+     await db.query("insert into public.vault_records(user_id,entity,data) values ($1,'ReserveTransaction',$2)",[
+       alice,JSON.stringify({amount:10.000000000000002,type:'deposit',date:'2026-10-05',reserve_id:legacyReserveId}),
+     ]);
+   }
+   await db.exec(await readFile(new URL(file,dir),'utf8'));
+ }
  await db.exec(`set role authenticated;set request.jwt.claim.sub='${alice}';`);
  const b=(await db.query(`insert into public.vault_records(entity,data) values ('Bill','{"description":"Internet","amount":100,"category":"Casa","due_date":"2026-10-01","status":"pendente"}') returning id`)).rows[0];
  const payment={amount:95.5,category:'Serviços',date:'2026-10-05',payment_method:'débito'};
  const pay=p=>db.query('select public.pay_bill($1,$2::jsonb)',[b.id,JSON.stringify(p)]);
+ const insert=(entity,data)=>db.query('insert into public.vault_records(entity,data) values ($1,$2::jsonb)',[entity,JSON.stringify(data)]);
+ const patchBill=patch=>db.query("select public.patch_vault_record($1,'Bill',$2::jsonb)",[b.id,JSON.stringify(patch)]);
+ await assert.rejects(insert('Bill',{amount:80,status:'pago'}), /Use Contas a pagar/);
+ await assert.rejects(patchBill({status:'pago'}), /Use Contas a pagar/);
+ await assert.rejects(patchBill({payment_expense_id:null}), /Use Contas a pagar/);
+ await assert.rejects(patchBill({paid_at:'2026-10-05'}), /Use Contas a pagar/);
+ for(const amount of [0,-1,1000000000001,'100','NaN',null]){
+   await assert.rejects(insert('Expense',{amount}), /valor|numérico/i);
+ }
+ await assert.rejects(insert('Expense',{amount:10.125}), /duas casas/);
+ await assert.rejects(pay({...payment,amount:95.555}), /duas casas/);
+ await assert.rejects(insert('Income',{
+   amount:20,
+   income_schedule:{active:true,start:'2026-10-05',end:'',day:5,amount:20.125,description:'Mensal',category:'',notes:''},
+ }), /recorrência/);
+ await insert('Investment',{name:'Criptomoeda',type:'cripto',quantidade:0.0001,preco_medio:1.2345});
+ for(const installments_total of [0,-1,1201,1.5]){
+   await assert.rejects(insert('Expense',{amount:90,installments_total}), /intervalo/);
+ }
+ await assert.rejects(insert('Expense',{amount:90,installments_total:2,installment_current:3}), /parcela atual/);
+ await assert.rejects(patchBill({amount:-1}), /intervalo/);
+ await assert.rejects(pay({...payment,amount:1000000000001}), /intervalo/);
  await assert.rejects(pay({...payment,date:'2026-02-31'}));await assert.rejects(pay({...payment,amount:-1}));await assert.rejects(pay({...payment,payment_method:'invalid'}));
  assert.equal((await db.query('select data from public.vault_records where id=$1',[b.id])).rows[0].data.status,'pendente');
  await db.exec(`set request.jwt.claim.sub='${bob}';`);await assert.rejects(pay(payment));
@@ -21,6 +62,9 @@ test('bill payment uses confirmed details, is atomic, idempotent and owner isola
  const expenses=(await db.query("select data from public.vault_records where entity='Expense'")).rows;
  assert.equal(expenses.length,1);assert.deepEqual(expenses[0].data,{description:'Internet',...payment});
  const bill=(await db.query('select data from public.vault_records where id=$1',[b.id])).rows[0].data;assert.equal(bill.status,'pago');assert.equal(bill.amount,100);assert.equal(bill.due_date,'2026-10-01');
+ await assert.rejects(patchBill({status:'pendente'}), /Use Contas a pagar/);
+ await assert.rejects(patchBill({payment_expense_id:null}), /Use Contas a pagar/);
+ await patchBill({description:'Internet mensal'});
  const second=(await db.query(`insert into public.vault_records(entity,data) values ('Bill','{"description":"Teste","amount":10,"status":"pendente"}') returning id`)).rows[0];
  const paySecond=p=>db.query('select public.pay_bill($1,$2::jsonb)',[second.id,JSON.stringify(p)]);
  await assert.rejects(paySecond({...payment,category_id:'00000000-0000-0000-0000-000000000099'}));
@@ -70,6 +114,34 @@ test('bill payment uses confirmed details, is atomic, idempotent and owner isola
  assert.equal((await db.query('select data from public.vault_records where id=$1',[investment.id])).rows[0].data.current_amount,45);
  await db.query("select public.delete_patrimony_asset($1,'Investment')",[investment.id]);
  assert.equal((await db.query("select id from public.vault_records where id=$1 or data->>'investment_id'=$1::text",[investment.id])).rows.length,0);
+
+ const backupExpense={
+   id:'00000000-0000-0000-0000-000000000020',entity:'Expense',
+   data:{description:'Energia',amount:95,date:'2026-10-05'},
+ };
+ const legacyPaidBill={
+   id:'00000000-0000-0000-0000-000000000021',entity:'Bill',
+   data:{description:'Energia',amount:100,due_date:'2026-10-05',status:'pago'},
+ };
+ const linkedPaidBill={
+   id:'00000000-0000-0000-0000-000000000022',entity:'Bill',
+   data:{...legacyPaidBill.data,payment_expense_id:backupExpense.id,paid_at:'2026-10-05'},
+ };
+ const restore=records=>db.query('select public.import_vault_backup($1::jsonb,$2) as result',[JSON.stringify(records),alice]);
+ await db.query("select public.patch_vault_record($1,'Income','{\"notes\":\"histórico preservado\"}')",[legacyIncome.id]);
+ assert.equal((await restore([legacyIncome])).rows[0].result.duplicatesTotal,1);
+ await assert.rejects(restore([{...legacyIncome,id:'00000000-0000-0000-0000-000000000023'}]), /duas casas/);
+ await db.query("select public.record_patrimony_movement($1,$2,'withdrawal',5,'2026-10-05','')",[
+   legacyReserveId,'00000000-0000-0000-0000-000000000024',
+ ]);
+ assert.equal((await db.query('select data from public.vault_records where id=$1',[legacyReserveId])).rows[0].data.current_amount,5);
+ await assert.rejects(restore([linkedPaidBill]), /Missing owned link/);
+ assert.equal((await restore([linkedPaidBill,legacyPaidBill,backupExpense])).rows[0].result.addedTotal,3);
+ assert.equal((await restore([linkedPaidBill,legacyPaidBill,backupExpense])).rows[0].result.duplicatesTotal,3);
+ await db.query('select public.reverse_bill_payment($1)',[legacyPaidBill.id]);
+ await db.query('select public.reverse_bill_payment($1)',[linkedPaidBill.id]);
+ assert.equal((await db.query('select id from public.vault_records where id=$1',[backupExpense.id])).rows.length,0);
+ assert.equal((await db.query('select data from public.vault_records where id=$1',[legacyPaidBill.id])).rows[0].data.status,'pendente');
  await db.exec('reset role;set role anon;');await assert.rejects(pay(payment));
  }finally{await db.close();}
 });

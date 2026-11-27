@@ -1,5 +1,6 @@
 import { copyFile, writeFile, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { assertPublicArtifact } from './build-security.mjs';
 await copyFile('dist/index.html','dist/404.html');
 await writeFile('dist/.nojekyll','');
 const sourceCommit = process.env.GITHUB_SHA;
@@ -25,3 +26,4 @@ const worker = [
   '});'
 ].join('\n');
 await writeFile('dist/sw.js',worker);
+await assertPublicArtifact('dist');

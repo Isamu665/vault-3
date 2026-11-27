@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 
 test('database enforces isolation, atomic patches, import and assistant quota', async () => {
@@ -13,7 +13,10 @@ test('database enforces isolation, atomic patches, import and assistant quota', 
       grant usage on schema auth to authenticated, anon;
       grant execute on function auth.uid() to authenticated, anon;
       insert into auth.users values ('00000000-0000-0000-0000-000000000001'), ('00000000-0000-0000-0000-000000000002');`);
-    await db.exec(await readFile(new URL('../supabase/migrations/20261101163455_vault_independent_backend.sql', import.meta.url), 'utf8'));
+    const migrations = new URL('../supabase/migrations/', import.meta.url);
+    for (const file of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
+      await db.exec(await readFile(new URL(file, migrations), 'utf8'));
+    }
     const alice = '00000000-0000-0000-0000-000000000001';
     const bob = '00000000-0000-0000-0000-000000000002';
     await db.exec(`set role authenticated; set request.jwt.claim.sub = '${alice}';`);
@@ -26,9 +29,7 @@ test('database enforces isolation, atomic patches, import and assistant quota', 
     await assert.rejects(db.query(`select public.patch_vault_record($1,'Income','{"amount":1}')`, [record.id]));
     assert.equal((await db.query('delete from public.vault_records returning id')).rows.length, 0);
     await assert.rejects(db.query(`insert into public.vault_records(user_id,entity) values ($1,'Income')`, [alice]));
-    const payload = [{ id: '10000000-0000-0000-0000-000000000001', entity: 'Expense', data: { amount: 5 } }];
-    assert.equal((await db.query('select public.import_vault_records($1::jsonb) as n', [JSON.stringify(payload)])).rows[0].n, 1);
-    assert.equal((await db.query('select public.import_vault_records($1::jsonb) as n', [JSON.stringify(payload)])).rows[0].n, 0);
+    assert.equal((await db.query("select to_regprocedure('public.import_vault_records(jsonb)') as legacy")).rows[0].legacy,null);
     for (let i=0;i<30;i++) assert.equal((await db.query('select public.consume_assistant_quota() as ok')).rows[0].ok, true);
     assert.equal((await db.query('select public.consume_assistant_quota() as ok')).rows[0].ok, false);
     await db.exec('reset role; set role anon;');

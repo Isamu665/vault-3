@@ -15,11 +15,17 @@ const blank = () => ({
 export default function DebtDialog({ open, onOpenChange, debt, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setForm(debt ? { ...blank(), ...debt } : blank()); }, [debt, open]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setError('');
+    setForm(debt ? { ...blank(), ...debt } : blank());
+  }, [debt, open]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
+    setError('');
     const payload = {
       ...form,
       original_amount: Number(form.original_amount) || 0,
@@ -29,11 +35,16 @@ export default function DebtDialog({ open, onOpenChange, debt, onSaved }) {
       interest_rate: Number(form.interest_rate) || 0,
       cet: Number(form.cet) || 0,
     };
-    if (debt?.id) await vault.entities.Debt.update(debt.id, payload);
-    else await vault.entities.Debt.create(payload);
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
+    try {
+      if (debt?.id) await vault.entities.Debt.update(debt.id, payload);
+      else await vault.entities.Debt.create(payload);
+      onOpenChange(false);
+      onSaved();
+    } catch (saveError) {
+      setError(saveError?.message || 'Não foi possível salvar a dívida.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -57,6 +68,7 @@ export default function DebtDialog({ open, onOpenChange, debt, onSaved }) {
           </div>
           <div><Label>Motivo</Label><Textarea rows={2} value={form.reason || ''} onChange={(e) => set('reason', e.target.value)} /></div>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={save} disabled={saving || !form.creditor || !form.installment_amount}>{saving ? 'Salvando...' : 'Salvar'}</Button>

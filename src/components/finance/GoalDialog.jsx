@@ -12,18 +12,29 @@ const blank = { name: '', category: 'outros', target_amount: '', current_amount:
 export default function GoalDialog({ open, onOpenChange, goal, onSaved }) {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setForm(goal ? { ...blank, ...goal } : blank); }, [goal, open]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setError('');
+    setForm(goal ? { ...blank, ...goal } : blank);
+  }, [goal, open]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
+    setError('');
     const payload = { ...form, target_amount: Number(form.target_amount) || 0, current_amount: Number(form.current_amount) || 0 };
     if (!payload.deadline) delete payload.deadline;
-    if (goal?.id) await vault.entities.Goal.update(goal.id, payload);
-    else await vault.entities.Goal.create(payload);
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
+    try {
+      if (goal?.id) await vault.entities.Goal.update(goal.id, payload);
+      else await vault.entities.Goal.create(payload);
+      onOpenChange(false);
+      onSaved();
+    } catch (saveError) {
+      setError(saveError?.message || 'Não foi possível salvar a meta.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -48,6 +59,7 @@ export default function GoalDialog({ open, onOpenChange, goal, onSaved }) {
             <div><Label>Onde guardar</Label><Input value={form.where || ''} onChange={(e) => set('where', e.target.value)} /></div>
           </div>
         </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={save} disabled={saving || !form.name || !form.target_amount}>{saving ? 'Salvando...' : 'Salvar'}</Button>

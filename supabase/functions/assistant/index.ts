@@ -23,8 +23,14 @@ Deno.serve(async req => {
     let body;
     try { body = JSON.parse(raw); } catch { return respond({ error: 'Pedido inválido.' }, 400); }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return respond({ error: 'Pedido inválido.' }, 400);
-    if (['confirm','undo'].includes(body.action)) {
-      const { data, error } = await client.rpc('confirm_assistant_action', {action_id:body.actionId,undo:body.action==='undo'});
+    if (['confirm','undo','cancel'].includes(body.action)) {
+      const actionId = body.actionId;
+      if (typeof actionId !== 'string' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(actionId)) {
+        return respond({ error: 'Ação inválida.' }, 400);
+      }
+      const { data, error } = body.action === 'cancel'
+        ? await client.rpc('cancel_assistant_action', { action_id: actionId })
+        : await client.rpc('confirm_assistant_action', { action_id: actionId, undo: body.action === 'undo' });
       if(error) return respond({error:'Não foi possível aplicar: '+error.message},409);
       return respond(data);
     }
@@ -106,7 +112,14 @@ Deno.serve(async req => {
     if(output.proposal && body.shareAccount===true && mode==='work') {
       try {
         const validated=validateProposal({...output.proposal,data:JSON.parse(output.proposal.dataJson)},records);
-        const {data,error}=await client.from('assistant_actions').insert({...validated,user_id:identity.user.id}).select().single();
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (!serviceKey) throw Error('Proposal writer unavailable');
+        const proposalWriter = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data, error } = await proposalWriter.from('assistant_actions')
+          .insert({ ...validated, user_id: identity.user.id, server_verified: true })
+          .select().single();
         if(error) throw error;
         proposal=data;
       } catch { output.content+='\n\nNão foi possível validar a proposta. Nenhum registro foi alterado. Informe os campos e tente novamente.'; }
